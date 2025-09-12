@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { getValidMoves, isInCheck, isCheckmate, isStalemate } from "../chess/chessLogic";
 import { makeAIMove } from "../chess/chessAI";
-import { resolveBattle as battleResolve } from "../chess/battleSystem";
+import { resolveBattle as battleResolve, BattleResult } from "../chess/battleSystem";
 import { getPieceStats } from "../chess/pieceData";
 
 export interface ChessPiece {
@@ -24,6 +24,8 @@ export interface BattleState {
   defenderRoll: number;
   damage: number;
   result: 'attacker_wins' | 'defender_wins' | 'both_survive';
+  attackerPosition: Position;
+  defenderPosition: Position;
 }
 
 type GameMode = 'pvp' | 'pvc' | null;
@@ -165,8 +167,13 @@ export const useChessGame = create<ChessGameState>()(
       // If there's a piece to capture, start battle
       if (clickedPiece) {
         const battleResult = battleResolve(selectedPiece, clickedPiece);
+        const battleStateWithPositions: BattleState = {
+          ...battleResult,
+          attackerPosition: { row: selectedSquare.row, col: selectedSquare.col },
+          defenderPosition: { row, col }
+        };
         set({ 
-          battleState: battleResult,
+          battleState: battleStateWithPositions,
           gamePhase: 'battle'
         });
       } else {
@@ -208,37 +215,28 @@ export const useChessGame = create<ChessGameState>()(
     
     resolveBattle: () => {
       const state = get();
-      if (!state.battleState || !state.selectedSquare) return;
+      if (!state.battleState) return;
       
-      const { battleState, board, selectedSquare, currentPlayer } = state;
-      const targetRow = battleState.defender === board[selectedSquare.row][selectedSquare.col] ? 
-        selectedSquare.row : 
-        state.validMoves[0]?.row || 0;
-      const targetCol = battleState.defender === board[selectedSquare.row][selectedSquare.col] ? 
-        selectedSquare.col : 
-        state.validMoves[0]?.col || 0;
+      const { battleState, board, currentPlayer } = state;
+      const { attackerPosition, defenderPosition } = battleState;
       
       const newBoard = board.map(r => [...r]);
       
       if (battleState.result === 'attacker_wins') {
-        // Attacker wins, move to target square
-        newBoard[targetRow][targetCol] = battleState.attacker;
-        newBoard[selectedSquare.row][selectedSquare.col] = null;
+        // Attacker wins, move to defender's position
+        newBoard[defenderPosition.row][defenderPosition.col] = battleState.attacker;
+        newBoard[attackerPosition.row][attackerPosition.col] = null;
+        // Mark piece as moved
+        newBoard[defenderPosition.row][defenderPosition.col]!.hasMoved = true;
       } else if (battleState.result === 'defender_wins') {
-        // Defender wins, attacker is destroyed
-        newBoard[selectedSquare.row][selectedSquare.col] = null;
+        // Defender wins, attacker is destroyed (removed from original position)
+        newBoard[attackerPosition.row][attackerPosition.col] = null;
+        // Defender stays in place with updated health
+        newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       } else {
-        // Both survive, update health
-        const updatedAttacker = { ...battleState.attacker };
-        const updatedDefender = { ...battleState.defender };
-        
-        newBoard[selectedSquare.row][selectedSquare.col] = updatedAttacker;
-        newBoard[targetRow][targetCol] = updatedDefender;
-      }
-      
-      // Mark piece as moved
-      if (newBoard[targetRow][targetCol]) {
-        newBoard[targetRow][targetCol]!.hasMoved = true;
+        // Both survive, update health but stay in original positions
+        newBoard[attackerPosition.row][attackerPosition.col] = battleState.attacker;
+        newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       }
       
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;

@@ -1,7 +1,16 @@
-import { ChessPiece, BattleState } from "../stores/useChessGame";
+import { ChessPiece } from "../stores/useChessGame";
 import { getPieceStats } from "./pieceData";
 
-export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): BattleState {
+export interface BattleResult {
+  attacker: ChessPiece;
+  defender: ChessPiece;
+  attackerRoll: number;
+  defenderRoll: number;
+  damage: number;
+  result: 'attacker_wins' | 'defender_wins' | 'both_survive';
+}
+
+export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): BattleResult {
   const attackerStats = getPieceStats(attacker.type);
   const defenderStats = getPieceStats(defender.type);
   
@@ -20,7 +29,7 @@ export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): Battl
   const newDefenderHealth = Math.max(0, defender.health - damage);
   
   // Determine result
-  let result: BattleState['result'];
+  let result: BattleResult['result'];
   if (newDefenderHealth <= 0) {
     result = 'attacker_wins';
   } else if (damage <= defenderStats.defense / 2) {
