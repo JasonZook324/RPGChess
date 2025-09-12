@@ -67,6 +67,9 @@ interface ChessGameState {
   // Heal system state
   isHealMode: boolean;
   selectedPieceForHeal: Position | null;
+
+  // Hover state
+  hoveredSquare: Position | null;
   
   // Actions
   setGameMode: (mode: GameMode) => void;
@@ -76,6 +79,7 @@ interface ChessGameState {
   restartGame: () => void;
   backToMenu: () => void;
   updateAI: (deltaTime: number) => void;
+  setHoveredSquare: (pos: Position | null) => void;
   
   // Experience system actions
   awardXP: (pieceId: string, amount: number) => void;
@@ -171,6 +175,9 @@ export const useChessGame = create<ChessGameState>()(
     // Heal system initial state
     isHealMode: false,
     selectedPieceForHeal: null,
+    
+    // Hover state
+    hoveredSquare: null,
     
     setGameMode: (mode) => set({ 
       gameMode: mode, 
@@ -522,6 +529,9 @@ export const useChessGame = create<ChessGameState>()(
         selectedPieceForHeal: null,
         moveHistory: [...state.moveHistory, moveNotation]
       });
-    }
+    },
+
+    // Hover actions
+    setHoveredSquare: (pos) => set({ hoveredSquare: pos }),
   }))
 );

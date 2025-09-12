@@ -3,11 +3,18 @@ import { useTexture, Text } from "@react-three/drei";
 import * as THREE from "three";
 import ChessPiece from "./ChessPiece";
 import { useChessGame } from "../lib/stores/useChessGame";
+import PieceInfoPanel from "./PieceInfoPanel";
 
 export default function ChessBoard() {
   const boardRef = useRef<THREE.Group>(null);
   const woodTexture = useTexture("/textures/wood.jpg");
-  const { board, selectedSquare, validMoves, handleSquareClick, isHealMode } = useChessGame();
+  const { board, selectedSquare, validMoves, handleSquareClick, isHealMode, hoveredSquare, setHoveredSquare } = useChessGame();
+
+  // Find the selected piece
+  let selectedPiece = null;
+  if (selectedSquare) {
+    selectedPiece = board[selectedSquare.row][selectedSquare.col];
+  }
 
   // Configure wood texture
   woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
@@ -37,6 +44,12 @@ export default function ChessBoard() {
           color = '#90ee90'; // Light green for normal moves
         }
       }
+      const isHovered = hoveredSquare && hoveredSquare.row === row && hoveredSquare.col === col;
+
+      // Improved highlight for dark squares
+      if (isHovered) {
+        color = isLight ? '#ffd700' : '#ffec8b'; // Gold for light, bright yellow for dark
+      }
 
       // Only allow clicking on empty squares or valid moves
       const handleSquareClickWrapper = () => {
@@ -51,6 +64,8 @@ export default function ChessBoard() {
           position={[col - 3.5, 0, row - 3.5]}
           receiveShadow
           onClick={handleSquareClickWrapper}
+          onPointerEnter={() => setHoveredSquare({ row, col })}
+          onPointerLeave={() => setHoveredSquare(null)}
         >
           <boxGeometry args={[1, 0.1, 1]} />
           <meshStandardMaterial 
@@ -84,18 +99,22 @@ export default function ChessBoard() {
   }
 
   return (
-    <group ref={boardRef} position={[0, 0, 0]}>
-      {/* Board base */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
-        <boxGeometry args={[10, 0.3, 10]} />
-        <meshStandardMaterial color="#8B4513" map={woodTexture} />
-      </mesh>
-      
-      {/* Board squares */}
-      {squares}
-      
-      {/* Chess pieces */}
-      {pieces}
-    </group>
+    <div style={{ display: "flex", gap: 32 }}>
+      {/* Info panel on the left */}
+      <PieceInfoPanel piece={selectedPiece} />
+
+      {/* 3D board */}
+      <group ref={boardRef} position={[0, 0, 0]}>
+        {/* Board base */}
+        <mesh position={[0, -0.2, 0]} receiveShadow>
+          <boxGeometry args={[10, 0.3, 10]} />
+          <meshStandardMaterial color="#8B4513" map={woodTexture} />
+        </mesh>
+        {/* Board squares */}
+        {squares}
+        {/* Chess pieces */}
+        {pieces}
+      </group>
+    </div>
   );
 }
