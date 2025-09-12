@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useTexture } from "@react-three/drei";
+import { useTexture, Text } from "@react-three/drei";
 import * as THREE from "three";
 import ChessPiece from "./ChessPiece";
 import { useChessGame } from "../lib/stores/useChessGame";
