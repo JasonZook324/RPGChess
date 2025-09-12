@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { ChessPiece as PieceType } from "../lib/stores/useChessGame";
-import { getPieceStats, getEffectiveStats, getMaxHealth, xpToNext } from "../lib/chess/pieceData";
+import { getPieceStats, getEffectiveStats, getMaxHealth, xpToNext, getPieceAbilities } from "../lib/chess/pieceData";
 import { useChessGame } from "../lib/stores/useChessGame";
 
 interface ChessPieceProps {
@@ -18,10 +18,17 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const [hovered, setHovered] = useState(false);
   const effectiveStats = getEffectiveStats(piece);
   const maxHealth = getMaxHealth(piece);
-  const { handleSquareClick, selectedSquare, currentPlayer } = useChessGame();
+  const { handleSquareClick, selectedSquare, currentPlayer, isHealMode, toggleHealMode } = useChessGame();
   
   const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
   const isCurrentPlayerPiece = piece.color === currentPlayer;
+  const abilities = getPieceAbilities(piece.type);
+  const canHeal = piece.type === 'bishop' && abilities.some(ability => ability.name === 'Heal');
+  
+  const handleHealToggle = (e: any) => {
+    e.stopPropagation();
+    toggleHealMode();
+  };
 
   // Hover and selection animation
   useFrame((state) => {
@@ -155,6 +162,40 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             >
               {`${piece.unspentPoints} unspent points!`}
             </Text>
+          )}
+          {canHeal && isCurrentPlayerPiece && (
+            <>
+              <Text
+                position={[0, -0.65, 0.01]}
+                fontSize={0.1}
+                color="#80ffff"
+                anchorX="center"
+                anchorY="middle"
+              >
+                {`[H] ${isHealMode ? 'HEAL MODE' : 'Heal ability available'}`}
+              </Text>
+              <mesh
+                position={[0, -0.8, 0.01]}
+                onClick={handleHealToggle}
+              >
+                <planeGeometry args={[1, 0.2]} />
+                <meshStandardMaterial 
+                  color={isHealMode ? "#00ff00" : "#0080ff"}
+                  transparent 
+                  opacity={0.7}
+                />
+              </mesh>
+              <Text
+                position={[0, -0.8, 0.02]}
+                fontSize={0.08}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                onClick={handleHealToggle}
+              >
+                {isHealMode ? 'EXIT HEAL' : 'HEAL MODE'}
+              </Text>
+            </>
           )}
         </group>
       )}
