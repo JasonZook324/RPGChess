@@ -284,6 +284,19 @@ export const useChessGame = create<ChessGameState>()(
         newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       }
       
+      // Award XP for victories
+      if (battleState.result === 'attacker_wins') {
+        const xpAward = calculateXPAward(battleState.attacker.level, battleState.defender.level, battleState.defender.type);
+        console.log(`Battle XP: ${battleState.attacker.type} (${battleState.attacker.id}) defeats ${battleState.defender.type} and gains ${xpAward} XP`);
+        // Use setTimeout to ensure XP is awarded after board state is updated
+        setTimeout(() => get().awardXP(battleState.attacker.id, xpAward), 0);
+      } else if (battleState.result === 'defender_wins') {
+        const xpAward = calculateXPAward(battleState.defender.level, battleState.attacker.level, battleState.attacker.type);
+        console.log(`Battle XP: ${battleState.defender.type} (${battleState.defender.id}) defeats ${battleState.attacker.type} and gains ${xpAward} XP`);
+        // Use setTimeout to ensure XP is awarded after board state is updated
+        setTimeout(() => get().awardXP(battleState.defender.id, xpAward), 0);
+      }
+      
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
       
       // Check for game end

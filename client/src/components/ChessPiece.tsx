@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { ChessPiece as PieceType } from "../lib/stores/useChessGame";
-import { getPieceStats } from "../lib/chess/pieceData";
+import { getPieceStats, getEffectiveStats, getMaxHealth, xpToNext } from "../lib/chess/pieceData";
 import { useChessGame } from "../lib/stores/useChessGame";
 
 interface ChessPieceProps {
@@ -16,7 +16,8 @@ interface ChessPieceProps {
 export default function ChessPiece({ piece, position, row, col }: ChessPieceProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  const stats = getPieceStats(piece.type);
+  const effectiveStats = getEffectiveStats(piece);
+  const maxHealth = getMaxHealth(piece);
   const { handleSquareClick, selectedSquare, currentPlayer } = useChessGame();
   
   const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
@@ -105,7 +106,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
       {hovered && (
         <group position={[0, 1.5, 0]} rotation={[-Math.PI / 4, 0, 0]}>
           <mesh>
-            <planeGeometry args={[2, 1]} />
+            <planeGeometry args={[2, 1.4]} />
             <meshStandardMaterial color="#000000" transparent opacity={0.8} />
           </mesh>
           <Text
@@ -124,17 +125,37 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             anchorX="center"
             anchorY="middle"
           >
-            {`HP: ${piece.health}/${stats.maxHealth}`}
+            {`HP: ${piece.health}/${maxHealth}`}
           </Text>
           <Text
-            position={[0, -0.2, 0.01]}
+            position={[0, -0.1, 0.01]}
             fontSize={0.12}
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
           >
-            {`ATK: ${stats.attack} | DEF: ${stats.defense}`}
+            {`ATK: ${effectiveStats.attack} | DEF: ${effectiveStats.defense}`}
           </Text>
+          <Text
+            position={[0, -0.3, 0.01]}
+            fontSize={0.12}
+            color="#ffff80"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {`Level ${piece.level} | XP: ${piece.xp}/${xpToNext(piece.level)}`}
+          </Text>
+          {piece.unspentPoints > 0 && (
+            <Text
+              position={[0, -0.5, 0.01]}
+              fontSize={0.11}
+              color="#80ff80"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {`${piece.unspentPoints} unspent points!`}
+            </Text>
+          )}
         </group>
       )}
     </group>
