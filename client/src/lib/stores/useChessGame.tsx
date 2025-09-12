@@ -204,6 +204,9 @@ export const useChessGame = create<ChessGameState>()(
         return;
       }
       
+      // Get selected piece for heal check
+      const selectedPiece = selectedSquare ? board[selectedSquare.row][selectedSquare.col] : null;
+      
       // Special case: heal action in heal mode
       if (isHealMode && selectedPiece && selectedPiece.type === 'bishop' && clickedPiece && clickedPiece.color === currentPlayer) {
         // Check if this is a valid heal target
@@ -228,7 +231,6 @@ export const useChessGame = create<ChessGameState>()(
       const isValidMove = state.validMoves.some(move => move.row === row && move.col === col);
       if (!isValidMove) return;
       
-      const selectedPiece = board[selectedSquare.row][selectedSquare.col];
       if (!selectedPiece) return;
       
       // If there's a piece to capture, start battle
