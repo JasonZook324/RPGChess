@@ -183,13 +183,13 @@ export const useChessGame = create<ChessGameState>()(
       const state = get();
       if (state.gamePhase !== 'playing') return;
       
-      const { board, selectedSquare, currentPlayer } = state;
+      const { board, selectedSquare, currentPlayer, isHealMode } = state;
       const clickedPiece = board[row][col];
       
       // If no piece is selected
       if (!selectedSquare) {
         if (clickedPiece && clickedPiece.color === currentPlayer) {
-          const validMoves = getValidMoves(board, { row, col });
+          const validMoves = getValidMoves(board, { row, col }, isHealMode);
           set({ 
             selectedSquare: { row, col }, 
             validMoves 
@@ -204,9 +204,19 @@ export const useChessGame = create<ChessGameState>()(
         return;
       }
       
+      // Special case: heal action in heal mode
+      if (isHealMode && selectedPiece && selectedPiece.type === 'bishop' && clickedPiece && clickedPiece.color === currentPlayer) {
+        // Check if this is a valid heal target
+        const isValidHealTarget = state.validMoves.some(move => move.row === row && move.col === col);
+        if (isValidHealTarget) {
+          get().performHeal(selectedSquare, { row, col });
+          return;
+        }
+      }
+      
       // If clicking another piece of the same color, select it
       if (clickedPiece && clickedPiece.color === currentPlayer) {
-        const validMoves = getValidMoves(board, { row, col });
+        const validMoves = getValidMoves(board, { row, col }, isHealMode);
         set({ 
           selectedSquare: { row, col }, 
           validMoves 

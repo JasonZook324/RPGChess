@@ -1,6 +1,7 @@
 import { ChessPiece, Position } from "../stores/useChessGame";
+import { getMaxHealth } from "./pieceData";
 
-export function getValidMoves(board: (ChessPiece | null)[][], position: Position): Position[] {
+export function getValidMoves(board: (ChessPiece | null)[][], position: Position, isHealMode: boolean = false): Position[] {
   const piece = board[position.row][position.col];
   if (!piece) return [];
 
@@ -12,7 +13,7 @@ export function getValidMoves(board: (ChessPiece | null)[][], position: Position
     case 'knight':
       return getKnightMoves(board, position, piece.color);
     case 'bishop':
-      return getBishopMoves(board, position, piece.color);
+      return isHealMode ? getBishopHealTargets(board, position, piece.color) : getBishopMoves(board, position, piece.color);
     case 'queen':
       return getQueenMoves(board, position, piece.color);
     case 'king':
@@ -132,6 +133,35 @@ function getBishopMoves(board: (ChessPiece | null)[][], position: Position, colo
   });
 
   return moves;
+}
+
+function getBishopHealTargets(board: (ChessPiece | null)[][], position: Position, color: 'white' | 'black'): Position[] {
+  const healTargets: Position[] = [];
+  const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+
+  directions.forEach(([dRow, dCol]) => {
+    for (let i = 1; i < 8; i++) {
+      const newRow = position.row + i * dRow;
+      const newCol = position.col + i * dCol;
+
+      if (!isValidPosition(newRow, newCol)) break;
+
+      const targetPiece = board[newRow][newCol];
+      if (!targetPiece) {
+        // Empty squares are not valid heal targets, but bishop can continue moving
+        continue;
+      } else {
+        // If it's a friendly piece that isn't at full health, it's a valid heal target
+        if (targetPiece.color === color && targetPiece.health < getMaxHealth(targetPiece)) {
+          healTargets.push({ row: newRow, col: newCol });
+        }
+        // Piece blocks further movement regardless of color
+        break;
+      }
+    }
+  });
+
+  return healTargets;
 }
 
 function getQueenMoves(board: (ChessPiece | null)[][], position: Position, color: 'white' | 'black'): Position[] {
