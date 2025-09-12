@@ -64,3 +64,39 @@ export function getPieceHealthColor(health: number, maxHealth: number): string {
   if (percentage > 0.2) return '#fb923c'; // Orange
   return '#ef4444'; // Red
 }
+
+// Experience system utility functions
+export function getEffectiveStats(piece: ChessPiece): PieceStats {
+  const baseStats = getPieceStats(piece.type);
+  return {
+    maxHealth: baseStats.maxHealth + piece.mods.maxHealth,
+    attack: baseStats.attack + piece.mods.attack,
+    defense: baseStats.defense + piece.mods.defense
+  };
+}
+
+export function getMaxHealth(piece: ChessPiece): number {
+  const baseStats = getPieceStats(piece.type);
+  return baseStats.maxHealth + piece.mods.maxHealth;
+}
+
+export function xpToNext(level: number): number {
+  return 50 + 50 * (level - 1);
+}
+
+// XP award base values by piece type
+export const XP_BASE_VALUES: Record<ChessPiece['type'], number> = {
+  pawn: 20,
+  knight: 40,
+  bishop: 40,
+  rook: 60,
+  queen: 100,
+  king: 150
+};
+
+export function calculateXPAward(winnerLevel: number, defeatedLevel: number, defeatedType: ChessPiece['type']): number {
+  const baseXP = XP_BASE_VALUES[defeatedType];
+  const levelDelta = defeatedLevel - winnerLevel;
+  const multiplier = Math.max(0.5, 1 + 0.2 * levelDelta);
+  return Math.round(baseXP * multiplier);
+}
