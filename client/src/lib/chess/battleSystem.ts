@@ -31,12 +31,20 @@ export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): Battl
   // Determine result
   let result: BattleResult['result'];
   if (newDefenderHealth <= 0) {
+    // Defender is defeated
     result = 'attacker_wins';
-  } else if (damage <= defenderStats.defense / 2) {
-    // If damage is very low, defender "wins" (survives easily)
-    result = 'defender_wins';
   } else {
-    result = 'both_survive';
+    // Defender survives, now check if defender can counter-attack successfully
+    const counterAttackRoll = Math.floor(Math.random() * 20) + 1;
+    const counterEffectiveAttack = defenderStats.attack + counterAttackRoll;
+    const counterEffectiveDefense = attackerStats.defense + attackerRoll;
+    
+    // Only if defender's counter-attack is overwhelmingly successful should attacker be destroyed
+    if (counterEffectiveAttack > counterEffectiveDefense + 10) {
+      result = 'defender_wins';
+    } else {
+      result = 'both_survive';
+    }
   }
   
   // Create updated pieces
@@ -46,10 +54,16 @@ export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): Battl
     health: result === 'attacker_wins' ? 0 : newDefenderHealth 
   };
   
-  // If both survive, attacker might also take some damage
-  if (result === 'both_survive' && defenderRoll > attackerRoll) {
-    const counterDamage = Math.max(1, Math.floor(damage / 3));
-    updatedAttacker.health = Math.max(1, attacker.health - counterDamage);
+  // Apply counter-damage if needed
+  if (result === 'defender_wins') {
+    // Defender's devastating counter-attack defeats attacker
+    updatedAttacker.health = 0;
+  } else if (result === 'both_survive') {
+    // Both survive, attacker might take some counter-damage
+    const counterDamage = Math.max(0, Math.floor(damage / 4));
+    if (counterDamage > 0) {
+      updatedAttacker.health = Math.max(1, attacker.health - counterDamage);
+    }
   }
   
   return {
