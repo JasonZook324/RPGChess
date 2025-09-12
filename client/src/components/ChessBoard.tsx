@@ -62,7 +62,7 @@ export default function ChessBoard() {
           <ChessPiece
             key={`${row}-${col}-${piece.type}-${piece.color}`}
             piece={piece}
-            position={[col - 3.5, 0.5, row - 3.5]}
+            position={[col - 3.5, 0.05, row - 3.5]}
             row={row}
             col={col}
           />
