@@ -59,7 +59,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     pieceColor = piece.color === 'white' ? '#f0f0f0' : '#505050'; // Slightly highlighted when hoverable
   }
   
-  // Get piece model based on type
+  // Get piece model and collider
   const getPieceModel = () => {
     const modelPath = `/models/${piece.type}.glb`;
     const { scene } = useGLTF(modelPath);
@@ -71,10 +71,12 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     const scale = 2.5; // Scale up as recommended in guidelines
     clonedScene.scale.set(scale, scale, scale);
     
-    // Apply piece color to all materials in the model
+    // Apply piece color to all materials and disable raycasting on child meshes
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
+        // Disable raycasting on all child meshes to prevent hover conflicts
+        mesh.raycast = () => null;
         if (mesh.material) {
           // Create a new material with the piece color
           mesh.material = new THREE.MeshStandardMaterial({
@@ -89,14 +91,43 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     return <primitive object={clonedScene} />;
   };
 
-  return (
-    <group position={position}>
-      <group
-        ref={groupRef}
+  // Create invisible collider for stable hover detection
+  const getCollider = () => {
+    // Different collider sizes based on piece type
+    const colliderSizes = {
+      pawn: [0.8, 1.2, 0.8],
+      rook: [1.0, 1.4, 1.0],
+      knight: [1.0, 1.6, 1.0],
+      bishop: [0.9, 1.8, 0.9],
+      queen: [1.1, 1.9, 1.1],
+      king: [1.2, 2.0, 1.2]
+    };
+    
+    const size = colliderSizes[piece.type] || [1.0, 1.5, 1.0];
+    
+    return (
+      <mesh 
+        position={[0, size[1] / 2, 0]}
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={handleClick}
       >
+        <boxGeometry args={size as [number, number, number]} />
+        <meshBasicMaterial 
+          transparent 
+          opacity={0} 
+          depthWrite={false}
+        />
+      </mesh>
+    );
+  };
+
+  return (
+    <group position={position}>
+      <group ref={groupRef}>
+        {/* Invisible collider for stable hover detection */}
+        {getCollider()}
+        {/* Visual model (no interaction) */}
         {getPieceModel()}
       </group>
       
