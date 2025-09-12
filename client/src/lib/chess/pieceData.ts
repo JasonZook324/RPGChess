@@ -6,6 +6,18 @@ export interface PieceStats {
   defense: number;
 }
 
+export interface PieceAbility {
+  name: string;
+  description: string;
+  cooldown?: number;
+}
+
+export interface PieceData {
+  stats: PieceStats;
+  abilities: PieceAbility[];
+  description: string;
+}
+
 export function getPieceStats(type: ChessPiece['type']): PieceStats {
   const stats: Record<ChessPiece['type'], PieceStats> = {
     pawn: {
@@ -48,12 +60,36 @@ export function getPieceDescription(type: ChessPiece['type']): string {
     pawn: "Foot soldier with basic combat training",
     rook: "Heavy fortress defender with strong armor",
     knight: "Mobile cavalry unit with balanced stats",
-    bishop: "Agile warrior with moderate combat skills",
+    bishop: "Divine healer with moderate combat skills and healing abilities",
     queen: "Elite commander with superior combat abilities",
     king: "Royal leader with exceptional defensive capabilities"
   };
   
   return descriptions[type];
+}
+
+export function getPieceAbilities(type: ChessPiece['type']): PieceAbility[] {
+  const abilities: Record<ChessPiece['type'], PieceAbility[]> = {
+    pawn: [],
+    rook: [],
+    knight: [],
+    bishop: [
+      {
+        name: "Heal",
+        description: "Restore health to an allied piece within movement range"
+      }
+    ],
+    queen: [],
+    king: []
+  };
+  
+  return abilities[type];
+}
+
+export function calculateHealAmount(bishopLevel: number, targetMaxHealth: number): number {
+  // Base heal percentage starts at 25% and increases by 5% per level
+  const healPercentage = Math.min(0.25 + (bishopLevel - 1) * 0.05, 0.75); // Cap at 75%
+  return Math.floor(targetMaxHealth * healPercentage);
 }
 
 export function getPieceHealthColor(health: number, maxHealth: number): string {
