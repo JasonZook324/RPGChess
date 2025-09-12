@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { ChessPiece as PieceType } from "../lib/stores/useChessGame";
 import { getPieceStats, getEffectiveStats, getMaxHealth, xpToNext, getPieceAbilities } from "../lib/chess/pieceData";
@@ -59,43 +59,46 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     pieceColor = piece.color === 'white' ? '#f0f0f0' : '#505050'; // Slightly highlighted when hoverable
   }
   
-  // Get piece shape based on type
-  const getPieceGeometry = () => {
-    switch (piece.type) {
-      case 'pawn':
-        return <sphereGeometry args={[0.25, 8, 6]} />;
-      case 'rook':
-        return <boxGeometry args={[0.4, 0.6, 0.4]} />;
-      case 'knight':
-        return <coneGeometry args={[0.3, 0.8, 4]} />;
-      case 'bishop':
-        return <coneGeometry args={[0.3, 0.9, 8]} />;
-      case 'queen':
-        return <octahedronGeometry args={[0.35]} />;
-      case 'king':
-        return <cylinderGeometry args={[0.35, 0.35, 0.8, 8]} />;
-      default:
-        return <sphereGeometry args={[0.25, 8, 6]} />;
-    }
+  // Get piece model based on type
+  const getPieceModel = () => {
+    const modelPath = `/models/${piece.type}.glb`;
+    const { scene } = useGLTF(modelPath);
+    
+    // Clone the scene to avoid sharing materials between instances
+    const clonedScene = scene.clone();
+    
+    // Scale the model appropriately (generated models might need scaling)
+    const scale = 2.5; // Scale up as recommended in guidelines
+    clonedScene.scale.set(scale, scale, scale);
+    
+    // Apply piece color to all materials in the model
+    clonedScene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          // Create a new material with the piece color
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: pieceColor,
+            metalness: 0.1,
+            roughness: 0.7
+          });
+        }
+      }
+    });
+    
+    return <primitive object={clonedScene} />;
   };
 
   return (
     <group position={position}>
-      <mesh
+      <group
         ref={meshRef}
-        castShadow
-        receiveShadow
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={handleClick}
       >
-        {getPieceGeometry()}
-        <meshStandardMaterial 
-          color={pieceColor}
-          metalness={0.1}
-          roughness={0.7}
-        />
-      </mesh>
+        {getPieceModel()}
+      </group>
       
       {/* Piece symbol */}
       <Text
