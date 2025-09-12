@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\client",
+    "\\client\\public",
+    "\\client\\src",
+    "\\client\\src\\lib",
+    "\\client\\src\\lib\\stores"
+  ],
+  "SelectedNode": "\\client\\src\\lib\\stores\\useChessGame.tsx",
+  "PreviewInSolutionExplorer": false
+}
