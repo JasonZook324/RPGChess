@@ -20,24 +20,32 @@ export default function ChessBoard() {
       const isLight = (row + col) % 2 === 0;
       const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
       const isValidMove = validMoves.some(move => move.row === row && move.col === col);
+      const piece = board[row][col];
       
       let color = isLight ? '#f0d9b5' : '#b58863';
       if (isSelected) color = '#7fb069';
-      if (isValidMove) color = '#7fb069';
+      if (isValidMove) color = '#90ee90';
+
+      // Only allow clicking on empty squares or valid moves
+      const handleSquareClickWrapper = () => {
+        if (!piece || isValidMove) {
+          handleSquareClick(row, col);
+        }
+      };
 
       squares.push(
         <mesh
           key={`${row}-${col}`}
           position={[col - 3.5, 0, row - 3.5]}
           receiveShadow
-          onClick={() => handleSquareClick(row, col)}
+          onClick={handleSquareClickWrapper}
         >
           <boxGeometry args={[1, 0.1, 1]} />
           <meshStandardMaterial 
             color={color}
             map={isLight ? woodTexture : null}
             transparent={isValidMove}
-            opacity={isValidMove ? 0.8 : 1}
+            opacity={isValidMove ? 0.9 : 1}
           />
         </mesh>
       );

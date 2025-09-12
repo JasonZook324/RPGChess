@@ -4,6 +4,7 @@ import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { ChessPiece as PieceType } from "../lib/stores/useChessGame";
 import { getPieceStats } from "../lib/chess/pieceData";
+import { useChessGame } from "../lib/stores/useChessGame";
 
 interface ChessPieceProps {
   piece: PieceType;
@@ -16,11 +17,19 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const stats = getPieceStats(piece.type);
+  const { handleSquareClick, selectedSquare, currentPlayer } = useChessGame();
+  
+  const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
+  const isCurrentPlayerPiece = piece.color === currentPlayer;
 
-  // Hover animation
+  // Hover and selection animation
   useFrame((state) => {
     if (meshRef.current) {
-      const targetY = hovered ? position[1] + 0.2 : position[1];
+      const baseY = position[1];
+      const hoverOffset = hovered ? 0.2 : 0;
+      const selectOffset = isSelected ? 0.3 : 0;
+      const targetY = baseY + Math.max(hoverOffset, selectOffset);
+      
       meshRef.current.position.y = THREE.MathUtils.lerp(
         meshRef.current.position.y,
         targetY,
@@ -29,8 +38,18 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     }
   });
 
-  // Get piece color
-  const pieceColor = piece.color === 'white' ? '#ffffff' : '#333333';
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    handleSquareClick(row, col);
+  };
+
+  // Get piece color with selection feedback
+  let pieceColor = piece.color === 'white' ? '#ffffff' : '#333333';
+  if (isSelected) {
+    pieceColor = piece.color === 'white' ? '#ffff80' : '#8080ff'; // Brighter when selected
+  } else if (hovered && isCurrentPlayerPiece) {
+    pieceColor = piece.color === 'white' ? '#f0f0f0' : '#505050'; // Slightly highlighted when hoverable
+  }
   
   // Get piece shape based on type
   const getPieceGeometry = () => {
@@ -60,6 +79,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         receiveShadow
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
+        onClick={handleClick}
       >
         {getPieceGeometry()}
         <meshStandardMaterial 
