@@ -1,6 +1,7 @@
 import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { useAudio } from "../lib/stores/useAudio";
+import { calculateXPAward } from "../lib/chess/pieceData";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
@@ -26,6 +27,24 @@ export default function BattleModal() {
   }
 
   const { attacker, defender, result, damage, attackerRoll, defenderRoll } = battleState;
+
+  // Calculate XP gain for winners
+  const getXPGain = () => {
+    if (result === 'attacker_wins') {
+      return {
+        winner: attacker,
+        xpGain: calculateXPAward(attacker.level, defender.level, defender.type)
+      };
+    } else if (result === 'defender_wins') {
+      return {
+        winner: defender,
+        xpGain: calculateXPAward(defender.level, attacker.level, attacker.type)
+      };
+    }
+    return null;
+  };
+
+  const xpInfo = getXPGain();
 
   return (
     <Html position={[0, 5, 5]} center>
@@ -73,6 +92,11 @@ export default function BattleModal() {
             <div className="text-lg font-bold text-yellow-400">
               Damage Dealt: {damage}
             </div>
+            {xpInfo && (
+              <div className="text-lg font-bold text-green-400">
+                ⭐ {xpInfo.winner.type.toUpperCase()} gains {xpInfo.xpGain} XP!
+              </div>
+            )}
             <div className={`text-xl font-bold ${
               result === 'attacker_wins' ? 'text-blue-400' : 
               result === 'defender_wins' ? 'text-red-400' : 'text-gray-400'
