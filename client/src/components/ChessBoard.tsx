@@ -7,7 +7,7 @@ import { useChessGame } from "../lib/stores/useChessGame";
 export default function ChessBoard() {
   const boardRef = useRef<THREE.Group>(null);
   const woodTexture = useTexture("/textures/wood.jpg");
-  const { board, selectedSquare, validMoves, handleSquareClick } = useChessGame();
+  const { board, selectedSquare, validMoves, handleSquareClick, isHealMode } = useChessGame();
 
   // Configure wood texture
   woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
@@ -22,9 +22,21 @@ export default function ChessBoard() {
       const isValidMove = validMoves.some(move => move.row === row && move.col === col);
       const piece = board[row][col];
       
+      // Check if this is a heal target (occupied square with friendly piece when in heal mode)
+      const isHealTarget = isValidMove && isHealMode && piece && selectedSquare && 
+        board[selectedSquare.row][selectedSquare.col] &&
+        board[selectedSquare.row][selectedSquare.col]?.type === 'bishop' &&
+        piece.color === board[selectedSquare.row][selectedSquare.col]?.color;
+      
       let color = isLight ? '#f0d9b5' : '#b58863';
       if (isSelected) color = '#7fb069';
-      if (isValidMove) color = '#90ee90';
+      if (isValidMove) {
+        if (isHealTarget) {
+          color = '#40e0d0'; // Turquoise for heal targets
+        } else {
+          color = '#90ee90'; // Light green for normal moves
+        }
+      }
 
       // Only allow clicking on empty squares or valid moves
       const handleSquareClickWrapper = () => {
