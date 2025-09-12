@@ -1,5 +1,5 @@
 import { ChessPiece } from "../stores/useChessGame";
-import { getPieceStats } from "./pieceData";
+import { getPieceStats, getEffectiveStats } from "./pieceData";
 
 export interface BattleResult {
   attacker: ChessPiece;
@@ -11,8 +11,8 @@ export interface BattleResult {
 }
 
 export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): BattleResult {
-  const attackerStats = getPieceStats(attacker.type);
-  const defenderStats = getPieceStats(defender.type);
+  const attackerStats = getEffectiveStats(attacker);
+  const defenderStats = getEffectiveStats(defender);
   
   // Roll dice (1-20) for both pieces
   const attackerRoll = Math.floor(Math.random() * 20) + 1;
