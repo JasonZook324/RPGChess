@@ -4,11 +4,21 @@ import { getValidMoves, isInCheck, isCheckmate, isStalemate } from "../chess/che
 import { makeAIMove } from "../chess/chessAI";
 import { resolveBattle as battleResolve, BattleResult } from "../chess/battleSystem";
 import { getPieceStats } from "../chess/pieceData";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ChessPiece {
+  id: string;
   type: 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
   color: 'white' | 'black';
   health: number;
+  level: number;
+  xp: number;
+  unspentPoints: number;
+  mods: {
+    attack: number;
+    defense: number;
+    maxHealth: number;
+  };
   hasMoved?: boolean;
 }
 
@@ -71,14 +81,25 @@ const createInitialBoard = (): (ChessPiece | null)[][] => {
   for (let col = 0; col < 8; col++) {
     const stats = getPieceStats(pieceOrder[col]);
     board[0][col] = { 
+      id: uuidv4(),
       type: pieceOrder[col], 
       color: 'black', 
-      health: stats.maxHealth 
+      health: stats.maxHealth,
+      level: 1,
+      xp: 0,
+      unspentPoints: 0,
+      mods: { attack: 0, defense: 0, maxHealth: 0 }
     };
+    const pawnStats = getPieceStats('pawn');
     board[1][col] = { 
+      id: uuidv4(),
       type: 'pawn', 
       color: 'black', 
-      health: getPieceStats('pawn').maxHealth 
+      health: pawnStats.maxHealth,
+      level: 1,
+      xp: 0,
+      unspentPoints: 0,
+      mods: { attack: 0, defense: 0, maxHealth: 0 }
     };
   }
   
@@ -86,14 +107,25 @@ const createInitialBoard = (): (ChessPiece | null)[][] => {
   for (let col = 0; col < 8; col++) {
     const stats = getPieceStats(pieceOrder[col]);
     board[7][col] = { 
+      id: uuidv4(),
       type: pieceOrder[col], 
       color: 'white', 
-      health: stats.maxHealth 
+      health: stats.maxHealth,
+      level: 1,
+      xp: 0,
+      unspentPoints: 0,
+      mods: { attack: 0, defense: 0, maxHealth: 0 }
     };
+    const pawnStats = getPieceStats('pawn');
     board[6][col] = { 
+      id: uuidv4(),
       type: 'pawn', 
       color: 'white', 
-      health: getPieceStats('pawn').maxHealth 
+      health: pawnStats.maxHealth,
+      level: 1,
+      xp: 0,
+      unspentPoints: 0,
+      mods: { attack: 0, defense: 0, maxHealth: 0 }
     };
   }
   
