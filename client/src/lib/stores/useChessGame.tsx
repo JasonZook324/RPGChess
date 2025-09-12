@@ -3,7 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { getValidMoves, isInCheck, isCheckmate, isStalemate } from "../chess/chessLogic";
 import { makeAIMove } from "../chess/chessAI";
 import { resolveBattle as battleResolve, BattleResult } from "../chess/battleSystem";
-import { getPieceStats, xpToNext, calculateXPAward, getMaxHealth } from "../chess/pieceData";
+import { getPieceStats, xpToNext, calculateXPAward, getMaxHealth, calculateHealAmount } from "../chess/pieceData";
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ChessPiece {
@@ -64,6 +64,10 @@ interface ChessGameState {
   levelUpQueue: string[];
   activeLevelUpPieceId: string | null;
   
+  // Heal system state
+  isHealMode: boolean;
+  selectedPieceForHeal: Position | null;
+  
   // Actions
   setGameMode: (mode: GameMode) => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
@@ -77,6 +81,10 @@ interface ChessGameState {
   awardXP: (pieceId: string, amount: number) => void;
   allocateAttributes: (pieceId: string, allocation: { attack?: number; defense?: number; maxHealth?: number }) => void;
   setActiveLevelUpPiece: (pieceId: string | null) => void;
+  
+  // Heal system actions
+  toggleHealMode: () => void;
+  performHeal: (bishopPosition: Position, targetPosition: Position) => void;
 }
 
 // Initial board setup
@@ -159,6 +167,10 @@ export const useChessGame = create<ChessGameState>()(
     // Experience system initial state
     levelUpQueue: [],
     activeLevelUpPieceId: null,
+    
+    // Heal system initial state
+    isHealMode: false,
+    selectedPieceForHeal: null,
     
     setGameMode: (mode) => set({ 
       gameMode: mode, 
@@ -455,6 +467,49 @@ export const useChessGame = create<ChessGameState>()(
       });
     },
     
-    setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId })
+    setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId }),
+    
+    // Heal system actions
+    toggleHealMode: () => {
+      set((state) => ({
+        isHealMode: !state.isHealMode,
+        selectedSquare: null,
+        validMoves: [],
+        selectedPieceForHeal: null
+      }));
+    },
+    
+    performHeal: (bishopPosition: Position, targetPosition: Position) => {
+      const state = get();
+      const bishop = state.board[bishopPosition.row][bishopPosition.col];
+      const target = state.board[targetPosition.row][targetPosition.col];
+      
+      if (!bishop || !target || bishop.type !== 'bishop' || bishop.color !== target.color) {
+        return;
+      }
+      
+      const targetMaxHealth = getMaxHealth(target);
+      const healAmount = calculateHealAmount(bishop.level, targetMaxHealth);
+      const newHealth = Math.min(targetMaxHealth, target.health + healAmount);
+      
+      const newBoard = state.board.map(row => [...row]);
+      newBoard[targetPosition.row][targetPosition.col] = {
+        ...target,
+        health: newHealth
+      };
+      
+      const moveNotation = `${bishop.type} heals ${target.type} for ${healAmount} HP`;
+      const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+      
+      set({
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        isHealMode: false,
+        selectedPieceForHeal: null,
+        moveHistory: [...state.moveHistory, moveNotation]
+      });
+    }
   }))
 );
