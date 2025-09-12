@@ -114,7 +114,13 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
       
       {/* Stats display when hovered */}
       {hovered && (
-        <group position={[0, 1.5, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+        <group 
+          position={[0, 1.5, 0]} 
+          rotation={[-Math.PI / 4, 0, 0]}
+          onPointerEnter={(e) => e.stopPropagation()}
+          onPointerLeave={(e) => e.stopPropagation()}
+          onPointerMove={(e) => e.stopPropagation()}
+        >
           <mesh>
             <planeGeometry args={[2, 1.4]} />
             <meshStandardMaterial color="#000000" transparent opacity={0.8} />
@@ -125,6 +131,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
+            raycast={() => null}
           >
             {`${piece.type.toUpperCase()}`}
           </Text>
@@ -134,6 +141,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
+            raycast={() => null}
           >
             {`HP: ${piece.health}/${maxHealth}`}
           </Text>
@@ -143,6 +151,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
+            raycast={() => null}
           >
             {`ATK: ${effectiveStats.attack} | DEF: ${effectiveStats.defense}`}
           </Text>
@@ -152,6 +161,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             color="#ffff80"
             anchorX="center"
             anchorY="middle"
+            raycast={() => null}
           >
             {`Level ${piece.level} | XP: ${piece.xp}/${xpToNext(piece.level)}`}
           </Text>
@@ -162,6 +172,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
               color="#80ff80"
               anchorX="center"
               anchorY="middle"
+              raycast={() => null}
             >
               {`${piece.unspentPoints} unspent points!`}
             </Text>
@@ -174,6 +185,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 color="#80ffff"
                 anchorX="center"
                 anchorY="middle"
+                raycast={() => null}
               >
                 {`[H] ${isHealMode ? 'HEAL MODE' : 'Heal ability available'}`}
               </Text>
