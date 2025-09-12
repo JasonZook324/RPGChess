@@ -14,7 +14,7 @@ interface ChessPieceProps {
 }
 
 export default function ChessPiece({ piece, position, row, col }: ChessPieceProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const effectiveStats = getEffectiveStats(piece);
   const maxHealth = getMaxHealth(piece);
@@ -32,14 +32,14 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
 
   // Hover and selection animation
   useFrame((state) => {
-    if (meshRef.current) {
+    if (groupRef.current) {
       const baseY = position[1];
       const hoverOffset = hovered ? 0.2 : 0;
       const selectOffset = isSelected ? 0.3 : 0;
       const targetY = baseY + Math.max(hoverOffset, selectOffset);
       
-      meshRef.current.position.y = THREE.MathUtils.lerp(
-        meshRef.current.position.y,
+      groupRef.current.position.y = THREE.MathUtils.lerp(
+        groupRef.current.position.y,
         targetY,
         0.1
       );
@@ -92,7 +92,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   return (
     <group position={position}>
       <group
-        ref={meshRef}
+        ref={groupRef}
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={handleClick}
@@ -117,11 +117,10 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         <group 
           position={[0, 1.5, 0]} 
           rotation={[-Math.PI / 4, 0, 0]}
-          onPointerEnter={(e) => e.stopPropagation()}
-          onPointerLeave={(e) => e.stopPropagation()}
-          onPointerMove={(e) => e.stopPropagation()}
         >
-          <mesh>
+          <mesh
+            raycast={() => null}
+          >
             <planeGeometry args={[2, 1.4]} />
             <meshStandardMaterial color="#000000" transparent opacity={0.8} />
           </mesh>
@@ -192,6 +191,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
               <mesh
                 position={[0, -0.8, 0.01]}
                 onClick={handleHealToggle}
+                onPointerEnter={(e) => { e.stopPropagation(); setHovered(true); }}
+                onPointerLeave={(e) => { e.stopPropagation(); }}
               >
                 <planeGeometry args={[1, 0.2]} />
                 <meshStandardMaterial 
@@ -207,6 +208,9 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 anchorX="center"
                 anchorY="middle"
                 onClick={handleHealToggle}
+                onPointerEnter={(e) => { e.stopPropagation(); setHovered(true); }}
+                onPointerLeave={(e) => { e.stopPropagation(); }}
+                raycast={() => null}
               >
                 {isHealMode ? 'EXIT HEAL' : 'HEAL MODE'}
               </Text>
