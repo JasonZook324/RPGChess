@@ -3,7 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { getValidMoves, isInCheck, isCheckmate, isStalemate } from "../chess/chessLogic";
 import { makeAIMove } from "../chess/chessAI";
 import { resolveBattle as battleResolve, BattleResult } from "../chess/battleSystem";
-import { getPieceStats } from "../chess/pieceData";
+import { getPieceStats, xpToNext, calculateXPAward, getMaxHealth } from "../chess/pieceData";
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ChessPiece {
@@ -60,6 +60,10 @@ interface ChessGameState {
   // AI state
   aiThinkingTime: number;
   
+  // Experience system state
+  levelUpQueue: string[];
+  activeLevelUpPieceId: string | null;
+  
   // Actions
   setGameMode: (mode: GameMode) => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
@@ -68,6 +72,11 @@ interface ChessGameState {
   restartGame: () => void;
   backToMenu: () => void;
   updateAI: (deltaTime: number) => void;
+  
+  // Experience system actions
+  awardXP: (pieceId: string, amount: number) => void;
+  allocateAttributes: (pieceId: string, allocation: { attack?: number; defense?: number; maxHealth?: number }) => void;
+  setActiveLevelUpPiece: (pieceId: string | null) => void;
 }
 
 // Initial board setup
@@ -146,6 +155,10 @@ export const useChessGame = create<ChessGameState>()(
     battleState: null,
     moveHistory: [],
     aiThinkingTime: 0,
+    
+    // Experience system initial state
+    levelUpQueue: [],
+    activeLevelUpPieceId: null,
     
     setGameMode: (mode) => set({ 
       gameMode: mode, 
@@ -346,7 +359,89 @@ export const useChessGame = create<ChessGameState>()(
       validMoves: [],
       battleState: null,
       moveHistory: [],
-      aiThinkingTime: 0
-    })
+      aiThinkingTime: 0,
+      levelUpQueue: [],
+      activeLevelUpPieceId: null
+    }),
+    
+    // Experience system actions
+    awardXP: (pieceId: string, amount: number) => {
+      set((state) => {
+        const newBoard = state.board.map(row => row.map(piece => {
+          if (!piece || piece.id !== pieceId) return piece;
+          
+          let newPiece = { ...piece, xp: piece.xp + amount };
+          let leveledUp = false;
+          
+          // Check for level ups
+          while (newPiece.xp >= xpToNext(newPiece.level)) {
+            newPiece.xp -= xpToNext(newPiece.level);
+            newPiece.level++;
+            newPiece.unspentPoints++;
+            leveledUp = true;
+          }
+          
+          // Add to level up queue if leveled up
+          const newLevelUpQueue = leveledUp && !state.levelUpQueue.includes(pieceId) 
+            ? [...state.levelUpQueue, pieceId] 
+            : state.levelUpQueue;
+          
+          if (leveledUp) {
+            setTimeout(() => set({ levelUpQueue: newLevelUpQueue }), 0);
+          }
+          
+          return newPiece;
+        }));
+        
+        return { board: newBoard };
+      });
+    },
+    
+    allocateAttributes: (pieceId: string, allocation: { attack?: number; defense?: number; maxHealth?: number }) => {
+      set((state) => {
+        const newBoard = state.board.map(row => row.map(piece => {
+          if (!piece || piece.id !== pieceId) return piece;
+          
+          const pointsUsed = (allocation.attack || 0) + (allocation.defense || 0) + (allocation.maxHealth || 0);
+          if (pointsUsed > piece.unspentPoints) return piece;
+          
+          const newMods = {
+            attack: piece.mods.attack + (allocation.attack || 0),
+            defense: piece.mods.defense + (allocation.defense || 0),
+            maxHealth: piece.mods.maxHealth + (allocation.maxHealth || 0)
+          };
+          
+          // If maxHealth increased, increase current health by the same amount (capped at new max)
+          let newHealth = piece.health;
+          if (allocation.maxHealth && allocation.maxHealth > 0) {
+            const newMaxHealth = getMaxHealth({ ...piece, mods: newMods });
+            newHealth = Math.min(newMaxHealth, piece.health + allocation.maxHealth);
+          }
+          
+          const updatedPiece = {
+            ...piece,
+            mods: newMods,
+            health: newHealth,
+            unspentPoints: piece.unspentPoints - pointsUsed
+          };
+          
+          return updatedPiece;
+        }));
+        
+        // Remove from queue if no more unspent points
+        const updatedPiece = newBoard.flat().find(p => p?.id === pieceId);
+        const newLevelUpQueue = updatedPiece && updatedPiece.unspentPoints === 0
+          ? state.levelUpQueue.filter(id => id !== pieceId)
+          : state.levelUpQueue;
+        
+        return { 
+          board: newBoard, 
+          levelUpQueue: newLevelUpQueue,
+          activeLevelUpPieceId: newLevelUpQueue.length > 0 ? state.activeLevelUpPieceId : null
+        };
+      });
+    },
+    
+    setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId })
   }))
 );
