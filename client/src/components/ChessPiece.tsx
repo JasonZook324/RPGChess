@@ -67,8 +67,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     // Clone the scene to avoid sharing materials between instances
     const clonedScene = scene.clone();
     
-    // Scale the model appropriately (generated models might need scaling)
-    const scale = 2.5; // Scale up as recommended in guidelines
+    // Scale the model smaller for better selection on larger spaced board
+    const scale = 0.8; // Smaller scale for better piece selection
     clonedScene.scale.set(scale, scale, scale);
     
     // Apply piece color to all materials and disable raycasting on child meshes
@@ -93,17 +93,17 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
 
   // Create invisible collider for stable hover detection
   const getCollider = () => {
-    // Different collider sizes based on piece type
+    // Smaller collider sizes to match reduced piece scale
     const colliderSizes = {
-      pawn: [0.8, 1.2, 0.8],
-      rook: [1.0, 1.4, 1.0],
-      knight: [1.0, 1.6, 1.0],
-      bishop: [0.9, 1.8, 0.9],
-      queen: [1.1, 1.9, 1.1],
-      king: [1.2, 2.0, 1.2]
+      pawn: [0.5, 0.6, 0.5],
+      rook: [0.6, 0.7, 0.6],
+      knight: [0.6, 0.8, 0.6],
+      bishop: [0.5, 0.9, 0.5],
+      queen: [0.7, 1.0, 0.7],
+      king: [0.7, 1.1, 0.7]
     };
     
-    const size = colliderSizes[piece.type] || [1.0, 1.5, 1.0];
+    const size = colliderSizes[piece.type] || [0.6, 0.8, 0.6];
     
     return (
       <mesh 

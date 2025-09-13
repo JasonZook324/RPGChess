@@ -48,11 +48,11 @@ export default function ChessBoard() {
       squares.push(
         <mesh
           key={`${row}-${col}`}
-          position={[col - 3.5, 0, row - 3.5]}
+          position={[(col - 3.5) * 1.5, 0, (row - 3.5) * 1.5]}
           receiveShadow
           onClick={handleSquareClickWrapper}
         >
-          <boxGeometry args={[1, 0.1, 1]} />
+          <boxGeometry args={[1.4, 0.1, 1.4]} />
           <meshStandardMaterial 
             color={color}
             map={isLight ? woodTexture : null}
@@ -74,7 +74,7 @@ export default function ChessBoard() {
           <ChessPiece
             key={`${row}-${col}-${piece.type}-${piece.color}`}
             piece={piece}
-            position={[col - 3.5, 0.05, row - 3.5]}
+            position={[(col - 3.5) * 1.5, 0.05, (row - 3.5) * 1.5]}
             row={row}
             col={col}
           />
@@ -87,7 +87,7 @@ export default function ChessBoard() {
     <group ref={boardRef} position={[0, 0, 0]}>
       {/* Board base */}
       <mesh position={[0, -0.2, 0]} receiveShadow>
-        <boxGeometry args={[10, 0.3, 10]} />
+        <boxGeometry args={[12, 0.3, 12]} />
         <meshStandardMaterial color="#8B4513" map={woodTexture} />
       </mesh>
       
