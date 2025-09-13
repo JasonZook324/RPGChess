@@ -38,11 +38,9 @@ export default function ChessBoard() {
         }
       }
 
-      // Only allow clicking on empty squares or valid moves
+      // Always allow clicking on squares - either to select pieces or make moves
       const handleSquareClickWrapper = () => {
-        if (!piece || isValidMove) {
-          handleSquareClick(row, col);
-        }
+        handleSquareClick(row, col);
       };
 
       squares.push(
