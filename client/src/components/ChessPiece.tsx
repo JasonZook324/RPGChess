@@ -2,7 +2,9 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+
 import { ChessPiece as PieceType } from "../lib/stores/useChessGame";
+
 import { useChessGame } from "../lib/stores/useChessGame";
 import { getEffectiveStats, getMaxHealth, xpToNext } from "../lib/chess/pieceData";
 
@@ -15,6 +17,7 @@ interface ChessPieceProps {
 
 export default function ChessPiece({ piece, position, row, col }: ChessPieceProps) {
   const groupRef = useRef<THREE.Group>(null);
+
   const { selectedSquare, currentPlayer, isHealMode, toggleHealMode } = useChessGame();
   
   const isSelected = Boolean(selectedSquare?.row === row && selectedSquare?.col === col);
@@ -25,13 +28,15 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const effectiveStats = getEffectiveStats(piece);
   const maxHealth = getMaxHealth(piece);
 
+
   // Selection animation only
   useFrame((state) => {
     if (groupRef.current) {
       const baseY = position[1];
+
       const selectOffset = isSelected ? 0.3 : 0;
       const targetY = baseY + selectOffset;
-      
+
       groupRef.current.position.y = THREE.MathUtils.lerp(
         groupRef.current.position.y,
         targetY,
@@ -45,43 +50,52 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   let pieceColor = piece.color === 'white' ? '#ffffff' : '#333333';
   if (isSelected) {
     pieceColor = piece.color === 'white' ? '#ffff80' : '#8080ff'; // Brighter when selected
+
   }
   
   // Get piece model
+
   const getPieceModel = () => {
     const modelPath = `/models/${piece.type}.glb`;
     const { scene } = useGLTF(modelPath);
-    
+
     // Clone the scene to avoid sharing materials between instances
     const clonedScene = scene.clone();
+
     
     // Scale the model smaller for better selection on larger spaced board
     const scale = 0.8; // Smaller scale for better piece selection
+
     clonedScene.scale.set(scale, scale, scale);
-    
+
     // Apply piece color to all materials and disable raycasting on child meshes
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        // Disable raycasting on all child meshes to prevent hover conflicts
         mesh.raycast = () => null;
         if (mesh.material) {
-          // Create a new material with the piece color
           mesh.material = new THREE.MeshStandardMaterial({
             color: pieceColor,
             metalness: 0.1,
-            roughness: 0.7
+            roughness: 0.7,
           });
         }
       }
     });
-    
-    return <primitive object={clonedScene} />;
+
+    // Wrap in a group to apply yOffset only for knights
+    return (
+      <group position={[0, yOffset, 0]}>
+        <primitive object={clonedScene} />
+      </group>
+    );
   };
+
   
   const handleHealToggle = (e: any) => {
     e.stopPropagation();
     toggleHealMode();
+
   };
 
 
@@ -91,7 +105,6 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         {/* Visual model (no interaction) */}
         {getPieceModel()}
       </group>
-      
       {/* Piece symbol */}
       <Text
         position={[0, 0.8, 0]}
@@ -109,13 +122,12 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
       {isSelected && (
         <group 
           position={[0, 1.5, 0]} 
+
           rotation={[-Math.PI / 4, 0, 0]}
         >
-          <mesh
-            raycast={() => null}
-          >
+          <mesh raycast={() => null} renderOrder={999}>
             <planeGeometry args={[2, 1.4]} />
-            <meshStandardMaterial color="#000000" transparent opacity={0.8} />
+            <meshStandardMaterial color="#000000" transparent opacity={0.8} depthTest={false} />
           </mesh>
           <Text
             position={[0, 0.2, 0.01]}
@@ -124,6 +136,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             anchorX="center"
             anchorY="middle"
             raycast={() => null}
+            renderOrder={1000}
           >
             {`${piece.type.toUpperCase()}`}
           </Text>
@@ -134,6 +147,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             anchorX="center"
             anchorY="middle"
             raycast={() => null}
+            renderOrder={1000}
           >
             {`HP: ${piece.health}/${maxHealth}`}
           </Text>
@@ -144,6 +158,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             anchorX="center"
             anchorY="middle"
             raycast={() => null}
+            renderOrder={1000}
           >
             {`ATK: ${effectiveStats.attack} | DEF: ${effectiveStats.defense}`}
           </Text>
@@ -154,6 +169,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
             anchorX="center"
             anchorY="middle"
             raycast={() => null}
+            renderOrder={1000}
           >
             {`Level ${piece.level} | XP: ${piece.xp}/${xpToNext(piece.level)}`}
           </Text>
@@ -165,6 +181,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
               anchorX="center"
               anchorY="middle"
               raycast={() => null}
+              renderOrder={1000}
             >
               {`${piece.unspentPoints} unspent points!`}
             </Text>
@@ -178,17 +195,19 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 anchorX="center"
                 anchorY="middle"
                 raycast={() => null}
+                renderOrder={1000}
               >
                 {`[H] ${isHealMode ? 'HEAL MODE' : 'Heal ability available'}`}
               </Text>
               <mesh
                 position={[0, -0.8, 0.01]}
                 onClick={handleHealToggle}
+
               >
                 <planeGeometry args={[1, 0.2]} />
-                <meshStandardMaterial 
+                <meshStandardMaterial
                   color={isHealMode ? "#00ff00" : "#0080ff"}
-                  transparent 
+                  transparent
                   opacity={0.7}
                 />
               </mesh>
@@ -199,7 +218,9 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 anchorX="center"
                 anchorY="middle"
                 onClick={handleHealToggle}
+
                 raycast={() => null}
+                renderOrder={1000}
               >
                 {isHealMode ? 'EXIT HEAL' : 'HEAL MODE'}
               </Text>

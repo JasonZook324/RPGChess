@@ -4,6 +4,10 @@ import * as THREE from "three";
 import ChessPiece from "./ChessPiece";
 import { useChessGame } from "../lib/stores/useChessGame";
 
+const SQUARE_SIZE = 1.2;      // New square size (increase as desired)
+const SQUARE_HEIGHT = 0.1;    // Height of each square (matches boxGeometry)
+const PIECE_Y = SQUARE_HEIGHT / 2 + 0.01; // Position pieces on top of squares
+
 export default function ChessBoard() {
   const boardRef = useRef<THREE.Group>(null);
   const woodTexture = useTexture("/textures/wood.jpg");
@@ -21,13 +25,13 @@ export default function ChessBoard() {
       const isSelected = selectedSquare && selectedSquare.row === row && selectedSquare.col === col;
       const isValidMove = validMoves.some(move => move.row === row && move.col === col);
       const piece = board[row][col];
-      
+
       // Check if this is a heal target (occupied square with friendly piece when in heal mode)
-      const isHealTarget = isValidMove && isHealMode && piece && selectedSquare && 
+      const isHealTarget = isValidMove && isHealMode && piece && selectedSquare &&
         board[selectedSquare.row][selectedSquare.col] &&
         board[selectedSquare.row][selectedSquare.col]?.type === 'bishop' &&
         piece.color === board[selectedSquare.row][selectedSquare.col]?.color;
-      
+
       let color = isLight ? '#f0d9b5' : '#b58863';
       if (isSelected) color = '#7fb069';
       if (isValidMove) {
@@ -46,12 +50,14 @@ export default function ChessBoard() {
       squares.push(
         <mesh
           key={`${row}-${col}`}
+
           position={[(col - 3.5) * 1.5, 0, (row - 3.5) * 1.5]}
           receiveShadow
           onClick={handleSquareClickWrapper}
         >
           <boxGeometry args={[1.4, 0.1, 1.4]} />
           <meshStandardMaterial 
+
             color={color}
             map={isLight ? woodTexture : null}
             transparent={isValidMove}
@@ -72,7 +78,9 @@ export default function ChessBoard() {
           <ChessPiece
             key={`${row}-${col}-${piece.type}-${piece.color}`}
             piece={piece}
+
             position={[(col - 3.5) * 1.5, 0.05, (row - 3.5) * 1.5]}
+
             row={row}
             col={col}
           />
@@ -85,13 +93,15 @@ export default function ChessBoard() {
     <group ref={boardRef} position={[0, 0, 0]}>
       {/* Board base */}
       <mesh position={[0, -0.2, 0]} receiveShadow>
+
         <boxGeometry args={[12, 0.3, 12]} />
+
         <meshStandardMaterial color="#8B4513" map={woodTexture} />
       </mesh>
-      
+
       {/* Board squares */}
       {squares}
-      
+
       {/* Chess pieces */}
       {pieces}
     </group>

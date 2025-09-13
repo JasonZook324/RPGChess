@@ -56,6 +56,7 @@ interface ChessGameState {
   validMoves: Position[];
   battleState: BattleState | null;
   moveHistory: string[];
+  hoveredSquare: Position | null;
   
   // AI state
   aiThinkingTime: number;
@@ -76,6 +77,7 @@ interface ChessGameState {
   restartGame: () => void;
   backToMenu: () => void;
   updateAI: (deltaTime: number) => void;
+  setHoveredSquare: (pos: Position | null) => void;
   
   // Experience system actions
   awardXP: (pieceId: string, amount: number) => void;
@@ -163,6 +165,7 @@ export const useChessGame = create<ChessGameState>()(
     battleState: null,
     moveHistory: [],
     aiThinkingTime: 0,
+    hoveredSquare: null,
     
     // Experience system initial state
     levelUpQueue: [],
@@ -383,7 +386,8 @@ export const useChessGame = create<ChessGameState>()(
       validMoves: [],
       battleState: null,
       moveHistory: [],
-      aiThinkingTime: 0
+      aiThinkingTime: 0,
+      hoveredSquare: null
     }),
     
     backToMenu: () => set({
@@ -398,7 +402,8 @@ export const useChessGame = create<ChessGameState>()(
       moveHistory: [],
       aiThinkingTime: 0,
       levelUpQueue: [],
-      activeLevelUpPieceId: null
+      activeLevelUpPieceId: null,
+      hoveredSquare: null
     }),
     
     // Experience system actions
@@ -522,6 +527,8 @@ export const useChessGame = create<ChessGameState>()(
         selectedPieceForHeal: null,
         moveHistory: [...state.moveHistory, moveNotation]
       });
-    }
+    },
+    
+    setHoveredSquare: (pos) => set({ hoveredSquare: pos }),
   }))
 );
