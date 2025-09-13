@@ -256,6 +256,17 @@ export const useChessGame = create<ChessGameState>()(
           newBoard[row][col]!.hasMoved = true;
         }
         
+        // Award stat point if pawn reaches the last rank
+        if (selectedPiece.type === 'pawn') {
+          if ((selectedPiece.color === 'white' && row === 0) ||
+              (selectedPiece.color === 'black' && row === 7)) {
+            newBoard[row][col] = {
+              ...newBoard[row][col]!,
+              unspentPoints: (newBoard[row][col]?.unspentPoints ?? 0) + 1,
+            };
+          }
+        }
+        
         const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
         
         // Check for game end

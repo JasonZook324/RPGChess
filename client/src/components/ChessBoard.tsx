@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTexture, Text } from "@react-three/drei";
 import * as THREE from "three";
 import ChessPiece from "./ChessPiece";
@@ -8,6 +8,9 @@ export default function ChessBoard() {
   const boardRef = useRef<THREE.Group>(null);
   const woodTexture = useTexture("/textures/wood.jpg");
   const { board, selectedSquare, validMoves, handleSquareClick, isHealMode } = useChessGame();
+
+  // Track hovered square
+  const [hoveredSquare, setHoveredSquare] = useState<{ row: number; col: number } | null>(null);
 
   // Configure wood texture
   woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
@@ -37,6 +40,14 @@ export default function ChessBoard() {
           color = '#90ee90'; // Light green for normal moves
         }
       }
+      // Highlight on hover (only if not already selected or a valid move)
+      const isHovered = hoveredSquare && hoveredSquare.row === row && hoveredSquare.col === col;
+      let highlightOpacity = 0;
+      if (isHovered && !isSelected && !isValidMove) {
+        // Lighter for dark, brighter yellow for light
+        color = isLight ? "#ffe066" : "#e2b97f"; // #ffe066 is a bright yellow
+        highlightOpacity = 0.7;
+      }
 
       // Always allow clicking on squares - either to select pieces or make moves
       const handleSquareClickWrapper = () => {
@@ -49,13 +60,15 @@ export default function ChessBoard() {
           position={[(col - 3.5) * 1.5, 0, (row - 3.5) * 1.5]}
           receiveShadow
           onClick={handleSquareClickWrapper}
+          onPointerOver={() => setHoveredSquare({ row, col })}
+          onPointerOut={() => setHoveredSquare(null)}
         >
           <boxGeometry args={[1.4, 0.1, 1.4]} />
           <meshStandardMaterial 
             color={color}
             map={isLight ? woodTexture : null}
-            transparent={isValidMove}
-            opacity={isValidMove ? 0.9 : 1}
+            transparent={isValidMove || isHovered}
+            opacity={isValidMove ? 0.9 : isHovered ? highlightOpacity : 1}
           />
         </mesh>
       );
@@ -75,6 +88,7 @@ export default function ChessBoard() {
             position={[(col - 3.5) * 1.5, 0.05, (row - 3.5) * 1.5]}
             row={row}
             col={col}
+            hovered={hoveredSquare && hoveredSquare.row === row && hoveredSquare.col === col}
           />
         );
       }
