@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
@@ -231,6 +232,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Initialize Socket.IO
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: process.env.NODE_ENV === 'production' ? false : "*",
+      methods: ["GET", "POST"],
+      credentials: true
+    }
+  });
+
+  // Game room management
+  interface GameRoom {
+    id: string;
+    players: {
+      white?: { id: number; username: string; socketId: string };
+      black?: { id: number; username: string; socketId: string };
+    };
+    gameState: any;
+    status: 'waiting' | 'playing' | 'finished';
+    createdAt: Date;
+  }
+
+  const gameRooms = new Map<string, GameRoom>();
+  const playerSockets = new Map<string, { userId: number; username: string; roomId?: string }>();
+
+  // Generate unique room ID
+  const generateRoomId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  // Socket.IO connection handling
+  io.on('connection', (socket) => {
+    console.log(`Socket connected: ${socket.id}`);
+
+    socket.on('authenticate', async (data: { userId: number; username: string }) => {
+      const { userId, username } = data;
+      playerSockets.set(socket.id, { userId, username });
+      socket.emit('authenticated', { success: true });
+      console.log(`User authenticated: ${username} (${userId})`);
+    });
+
+    socket.on('create_room', () => {
+      const player = playerSockets.get(socket.id);
+      if (!player) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      const roomId = generateRoomId();
+      const room: GameRoom = {
+        id: roomId,
+        players: {
+          white: { id: player.userId, username: player.username, socketId: socket.id }
+        },
+        gameState: null,
+        status: 'waiting',
+        createdAt: new Date()
+      };
+
+      gameRooms.set(roomId, room);
+      player.roomId = roomId;
+      socket.join(roomId);
+
+      socket.emit('room_created', { roomId, role: 'white' });
+      console.log(`Room created: ${roomId} by ${player.username}`);
+    });
+
+    socket.on('join_room', (data: { roomId: string }) => {
+      const player = playerSockets.get(socket.id);
+      if (!player) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      const room = gameRooms.get(data.roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      if (room.status !== 'waiting') {
+        socket.emit('error', { message: 'Room is not available' });
+        return;
+      }
+
+      if (room.players.black) {
+        socket.emit('error', { message: 'Room is full' });
+        return;
+      }
+
+      // Add player as black
+      room.players.black = { id: player.userId, username: player.username, socketId: socket.id };
+      room.status = 'playing';
+      player.roomId = data.roomId;
+      socket.join(data.roomId);
+
+      // Notify both players that the game can start
+      io.to(data.roomId).emit('game_start', {
+        players: {
+          white: room.players.white,
+          black: room.players.black
+        }
+      });
+
+      console.log(`Player ${player.username} joined room ${data.roomId}`);
+    });
+
+    socket.on('make_move', async (data: { roomId: string; move: any; gameState: any }) => {
+      const player = playerSockets.get(socket.id);
+      if (!player) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      const room = gameRooms.get(data.roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      // Verify player is in this room
+      const isWhite = room.players.white?.socketId === socket.id;
+      const isBlack = room.players.black?.socketId === socket.id;
+      
+      if (!isWhite && !isBlack) {
+        socket.emit('error', { message: 'Not a player in this room' });
+        return;
+      }
+
+      // Update room game state
+      room.gameState = data.gameState;
+
+      // Save move to database
+      try {
+        const gameRecord = await storage.createGame({
+          player1Id: room.players.white!.id,
+          player2Id: room.players.black!.id,
+          gameState: data.gameState,
+          status: 'playing'
+        });
+
+        await storage.addGameMove({
+          gameId: gameRecord.id,
+          playerId: player.userId,
+          moveNumber: data.move.moveNumber || 1,
+          moveData: JSON.stringify(data.move)
+        });
+      } catch (error) {
+        console.error('Database error:', error);
+      }
+
+      // Broadcast move to other player
+      socket.to(data.roomId).emit('opponent_move', {
+        move: data.move,
+        gameState: data.gameState,
+        player: isWhite ? 'white' : 'black'
+      });
+
+      console.log(`Move made in room ${data.roomId} by ${player.username}`);
+    });
+
+    socket.on('game_end', async (data: { roomId: string; winner: string; gameState: any }) => {
+      const room = gameRooms.get(data.roomId);
+      if (room) {
+        room.status = 'finished';
+        room.gameState = data.gameState;
+
+        // Update database with final result
+        try {
+          // TODO: Update game record with winner and final state
+          console.log(`Game ended in room ${data.roomId}, winner: ${data.winner}`);
+        } catch (error) {
+          console.error('Database error:', error);
+        }
+
+        io.to(data.roomId).emit('game_ended', { winner: data.winner });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      const player = playerSockets.get(socket.id);
+      if (player && player.roomId) {
+        const room = gameRooms.get(player.roomId);
+        if (room) {
+          // Notify other player about disconnection
+          socket.to(player.roomId).emit('player_disconnected', {
+            player: player.username
+          });
+        }
+      }
+      
+      playerSockets.delete(socket.id);
+      console.log(`Socket disconnected: ${socket.id}`);
+    });
+  });
 
   return httpServer;
 }
