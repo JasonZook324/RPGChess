@@ -30,6 +30,8 @@ export interface Position {
 export interface BattleState {
   attacker: ChessPiece;
   defender: ChessPiece;
+  originalAttacker: ChessPiece;
+  originalDefender: ChessPiece;
   attackerRoll: number;
   defenderRoll: number;
   damage: number;
