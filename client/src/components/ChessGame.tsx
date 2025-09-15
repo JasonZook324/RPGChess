@@ -4,6 +4,7 @@ import ChessBoard from "./ChessBoard";
 import GameUI from "./GameUI";
 import BattleModal from "./BattleModal";
 import LevelUpModal from "./LevelUpModal";
+import PromotionModal from "./PromotionModal";
 import { useChessGame } from "../lib/stores/useChessGame";
 
 export default function ChessGame() {
@@ -23,6 +24,7 @@ export default function ChessGame() {
       <GameUI />
       <BattleModal />
       <LevelUpModal />
+      <PromotionModal />
     </group>
   );
 }

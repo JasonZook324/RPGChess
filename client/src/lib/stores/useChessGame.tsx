@@ -39,8 +39,9 @@ export interface BattleState {
 }
 
 type GameMode = 'pvp' | 'pvc' | null;
-type GamePhase = 'ready' | 'playing' | 'battle' | 'ended';
+type GamePhase = 'ready' | 'playing' | 'battle' | 'promotion' | 'ended';
 type AIDifficulty = 'easy' | 'medium' | 'hard';
+type PromotionPieceType = 'queen' | 'rook' | 'knight' | 'bishop';
 
 interface ChessGameState {
   // Game state
@@ -68,6 +69,10 @@ interface ChessGameState {
   isHealMode: boolean;
   selectedPieceForHeal: Position | null;
   
+  // Promotion state
+  promotionPosition: Position | null;
+  promotingPiece: ChessPiece | null;
+  
   // Actions
   setGameMode: (mode: GameMode) => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
@@ -85,6 +90,9 @@ interface ChessGameState {
   // Heal system actions
   toggleHealMode: () => void;
   performHeal: (bishopPosition: Position, targetPosition: Position) => void;
+  
+  // Promotion actions
+  promotePawn: (pieceType: PromotionPieceType) => void;
 }
 
 // Initial board setup
@@ -172,6 +180,10 @@ export const useChessGame = create<ChessGameState>()(
     isHealMode: false,
     selectedPieceForHeal: null,
     
+    // Promotion initial state
+    promotionPosition: null,
+    promotingPiece: null,
+    
     setGameMode: (mode) => set({ 
       gameMode: mode, 
       gamePhase: mode ? 'playing' : 'ready' 
@@ -256,14 +268,27 @@ export const useChessGame = create<ChessGameState>()(
           newBoard[row][col]!.hasMoved = true;
         }
         
-        // Award stat point if pawn reaches the last rank
+        // Check if pawn reaches promotion rank
         if (selectedPiece.type === 'pawn') {
           if ((selectedPiece.color === 'white' && row === 0) ||
               (selectedPiece.color === 'black' && row === 7)) {
-            newBoard[row][col] = {
-              ...newBoard[row][col]!,
-              unspentPoints: (newBoard[row][col]?.unspentPoints ?? 0) + 1,
-            };
+            // Store promotion info and enter promotion phase
+            set({
+              board: newBoard, // Apply the move to show pawn on promotion square
+              promotionPosition: { row, col },
+              promotingPiece: selectedPiece,
+              gamePhase: 'promotion',
+              selectedSquare: null,
+              validMoves: []
+            });
+            
+            // Schedule AI promotion if in PvC mode and it's AI's piece
+            const currentState = get();
+            if (currentState.gameMode === 'pvc' && selectedPiece.color === 'black') {
+              setTimeout(() => get().promotePawn('queen'), 500);
+            }
+            
+            return; // Don't complete the move yet
           }
         }
         
@@ -308,6 +333,37 @@ export const useChessGame = create<ChessGameState>()(
         newBoard[attackerPosition.row][attackerPosition.col] = null;
         // Mark piece as moved
         newBoard[defenderPosition.row][defenderPosition.col]!.hasMoved = true;
+        
+        // Check for pawn promotion after capturing
+        if (battleState.attacker.type === 'pawn') {
+          if ((battleState.attacker.color === 'white' && defenderPosition.row === 0) ||
+              (battleState.attacker.color === 'black' && defenderPosition.row === 7)) {
+            // Award XP before entering promotion phase
+            const xpAward = calculateXPAward(battleState.attacker.level, battleState.defender.level, battleState.defender.type);
+            console.log(`Battle XP: ${battleState.attacker.type} (${battleState.attacker.id}) defeats ${battleState.defender.type} and gains ${xpAward} XP`);
+            
+            // Enter promotion phase
+            set({
+              board: newBoard,
+              promotionPosition: defenderPosition,
+              promotingPiece: battleState.attacker,
+              gamePhase: 'promotion',
+              selectedSquare: null,
+              validMoves: [],
+              battleState: null
+            });
+            
+            // Award XP after state is updated
+            setTimeout(() => get().awardXP(battleState.attacker.id, xpAward), 0);
+            
+            // Schedule AI promotion if in PvC mode and it's AI's piece
+            if (get().gameMode === 'pvc' && battleState.attacker.color === 'black') {
+              setTimeout(() => get().promotePawn('queen'), 500);
+            }
+            
+            return; // Don't continue with normal battle resolution
+          }
+        }
       } else if (battleState.result === 'defender_wins') {
         // Defender wins, attacker is destroyed (removed from original position)
         newBoard[attackerPosition.row][attackerPosition.col] = null;
@@ -532,6 +588,58 @@ export const useChessGame = create<ChessGameState>()(
         isHealMode: false,
         selectedPieceForHeal: null,
         moveHistory: [...state.moveHistory, moveNotation]
+      });
+    },
+    
+    // Promotion actions
+    promotePawn: (pieceType: PromotionPieceType) => {
+      const state = get();
+      if (!state.promotionPosition || !state.promotingPiece) return;
+      
+      const { promotionPosition, promotingPiece, currentPlayer, selectedSquare } = state;
+      
+      // Create the new promoted piece
+      const stats = getPieceStats(pieceType);
+      const promotedPiece: ChessPiece = {
+        ...promotingPiece,
+        type: pieceType,
+        health: stats.maxHealth,
+        hasMoved: true
+      };
+      
+      // Update the board
+      const newBoard = state.board.map(r => [...r]);
+      newBoard[promotionPosition.row][promotionPosition.col] = promotedPiece;
+      
+      // Clear original position if pawn moved
+      if (selectedSquare) {
+        newBoard[selectedSquare.row][selectedSquare.col] = null;
+      }
+      
+      const moveNotation = `${promotingPiece.type} promotes to ${pieceType} at ${String.fromCharCode(97 + promotionPosition.col)}${8 - promotionPosition.row}`;
+      
+      // Check for game end
+      const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
+      let winner = null;
+      let phase: GamePhase = 'playing';
+      
+      if (isCheckmate(newBoard, nextPlayer)) {
+        winner = currentPlayer;
+        phase = 'ended';
+      } else if (isStalemate(newBoard, nextPlayer)) {
+        phase = 'ended';
+      }
+      
+      set({
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        promotionPosition: null,
+        promotingPiece: null,
+        gamePhase: phase,
+        moveHistory: [...state.moveHistory, moveNotation],
+        winner
       });
     }
   }))
