@@ -1,37 +1,41 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\",
+  "WorkspaceRootPath": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\lib\\stores\\useChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\gitignore .gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:gitignore .gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessPiece.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessPiece.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\ChessPiece.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessBoard.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessBoard.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\ChessBoard.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\BattleModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\lib\\stores\\useChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\BattleModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\BattleModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\LevelUpModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\LevelUpModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\LevelUpModal.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameModeSelector.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameModeSelector.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\GameModeSelector.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameUI.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameUI.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\GameUI.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\src\\components\\ChessGame.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     }
   ],
@@ -42,111 +46,123 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "gitignore .gitignore",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\gitignore .gitignore",
+              "RelativeDocumentMoniker": "gitignore .gitignore",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\gitignore .gitignore",
+              "RelativeToolTip": "gitignore .gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEYAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-09-15T14:11:37.434Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "useChessGame.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx",
               "RelativeDocumentMoniker": "client\\src\\lib\\stores\\useChessGame.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\lib\\stores\\useChessGame.tsx",
               "RelativeToolTip": "client\\src\\lib\\stores\\useChessGame.tsx",
-              "ViewState": "AgIAABsBAAAAAAAAAAAswAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAP0AAAAAAAAAAAAswAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2025-09-13T20:58:11.961Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "BattleModal.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\BattleModal.tsx",
-              "RelativeDocumentMoniker": "client\\src\\components\\BattleModal.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\BattleModal.tsx",
-              "RelativeToolTip": "client\\src\\components\\BattleModal.tsx",
-              "ViewState": "AgIAAEMAAAAAAAAAAAAWwAAAAAAAAAAAAAAAAA==",
+              "DocumentIndex": 6,
+              "Title": "GameModeSelector.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameModeSelector.tsx",
+              "RelativeDocumentMoniker": "client\\src\\components\\GameModeSelector.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameModeSelector.tsx",
+              "RelativeToolTip": "client\\src\\components\\GameModeSelector.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-09-13T20:13:00.559Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-13T20:11:28.801Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "GameModeSelector.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameModeSelector.tsx",
-              "RelativeDocumentMoniker": "client\\src\\components\\GameModeSelector.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameModeSelector.tsx",
-              "RelativeToolTip": "client\\src\\components\\GameModeSelector.tsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-09-13T20:11:28.801Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
               "Title": "LevelUpModal.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\LevelUpModal.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\LevelUpModal.tsx",
               "RelativeDocumentMoniker": "client\\src\\components\\LevelUpModal.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\LevelUpModal.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\LevelUpModal.tsx",
               "RelativeToolTip": "client\\src\\components\\LevelUpModal.tsx",
               "ViewState": "AgIAAFsAAAAAAAAAAAAswGMAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-09-13T20:11:27.134Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-13T20:11:27.134Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "GameUI.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameUI.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameUI.tsx",
               "RelativeDocumentMoniker": "client\\src\\components\\GameUI.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\GameUI.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\GameUI.tsx",
               "RelativeToolTip": "client\\src\\components\\GameUI.tsx",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-09-13T20:11:24.909Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-13T20:11:24.909Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "ChessPiece.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessPiece.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessPiece.tsx",
               "RelativeDocumentMoniker": "client\\src\\components\\ChessPiece.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessPiece.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessPiece.tsx",
               "RelativeToolTip": "client\\src\\components\\ChessPiece.tsx",
-              "ViewState": "AgIAAAcAAAAAAAAAAADwv1kAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAFMAAAAAAAAAAAD4v1oAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2025-09-13T20:11:21.291Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "ChessGame.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessGame.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessGame.tsx",
               "RelativeDocumentMoniker": "client\\src\\components\\ChessGame.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessGame.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessGame.tsx",
               "RelativeToolTip": "client\\src\\components\\ChessGame.tsx",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-09-13T20:11:19.753Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-13T20:11:19.753Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "ChessBoard.tsx",
-              "DocumentMoniker": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessBoard.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessBoard.tsx",
               "RelativeDocumentMoniker": "client\\src\\components\\ChessBoard.tsx",
-              "ToolTip": "C:\\Users\\jason\\OneDrive\\Desktop\\git\\RPGChess\\client\\src\\components\\ChessBoard.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\ChessBoard.tsx",
               "RelativeToolTip": "client\\src\\components\\ChessBoard.tsx",
-              "ViewState": "AgIAAF4AAAAAAAAAAAApwGMAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAEkAAAAAAAAAAAApwFcAAAAuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2025-09-13T20:11:14.651Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "BattleModal.tsx",
+              "DocumentMoniker": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\BattleModal.tsx",
+              "RelativeDocumentMoniker": "client\\src\\components\\BattleModal.tsx",
+              "ToolTip": "C:\\Users\\64515C\\source\\repos\\LEARNING\\RPGChess\\client\\src\\components\\BattleModal.tsx",
+              "RelativeToolTip": "client\\src\\components\\BattleModal.tsx",
+              "ViewState": "AgIAAEMAAAAAAAAAAAAWwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-09-13T20:13:00.559Z"
             },
             {
               "$type": "Bookmark",

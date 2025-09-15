@@ -85,7 +85,7 @@ export default function ChessBoard() {
           <ChessPiece
             key={`${row}-${col}-${piece.type}-${piece.color}`}
             piece={piece}
-            position={[(col - 3.5) * 1.5, 0.05, (row - 3.5) * 1.5]}
+            position={[(col - 3.5) * 1.5, 0.30, (row - 3.5) * 1.5]}
             row={row}
             col={col}
             hovered={hoveredSquare && hoveredSquare.row === row && hoveredSquare.col === col}

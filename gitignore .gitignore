@@ -1,0 +1,71 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Vite/React build output
+dist/
+dist-public/
+build/
+.temp/
+.vite/
+
+# Vite cache
+.vite/
+.cache/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE/editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Misc
+*.log
+*.lock
+*.bak
+*.tmp
+
+# Coverage
+coverage/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Replit
+.replit
+.replit.db
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Desktop.ini
+
+# Optional: ignore generated assets
+client/public/models/
+client/public/textures/
+client/public/audio/
+
+# Optional: ignore test snapshots
+__snapshots__/
