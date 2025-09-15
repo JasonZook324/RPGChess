@@ -212,7 +212,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         {/* Info Panel */}
         {showInfo && (
           <Html
-            position={[0, 1.5, 0]}
+            position={[0, row <= 2 ? -1.5 : 1.5, 0]}
             center
             style={{
               background: 'rgba(0, 0, 0, 0.9)',
