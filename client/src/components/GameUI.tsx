@@ -15,7 +15,7 @@ export default function GameUI() {
   } = useChessGame();
 
   return (
-    <Html position={[6, 8, 0]} center>
+    <Html position={[-11, 0, -5]} center>
       <Card className="w-80 bg-black/80 text-white border-gray-600">
         <CardHeader>
           <CardTitle className="text-center text-xl">
@@ -52,19 +52,19 @@ export default function GameUI() {
             </Button>
           </div>
 
-          {/* Move History */}
-          {moveHistory.length > 0 && (
-            <div className="max-h-32 overflow-y-auto">
-              <div className="text-sm font-semibold mb-2">Recent Moves:</div>
-              <div className="space-y-1">
-                {moveHistory.slice(-5).map((move, index) => (
-                  <div key={index} className="text-xs text-gray-300">
-                    {move}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Move History (DO NOT NEED CURRENTLY IMPLEMENT LATER */}
+          {/*{moveHistory.length > 0 && (*/}
+          {/*  <div className="max-h-32 overflow-y-auto">*/}
+          {/*    <div className="text-sm font-semibold mb-2">Recent Moves:</div>*/}
+          {/*    <div className="space-y-1">*/}
+          {/*      {moveHistory.slice(-5).map((move, index) => (*/}
+          {/*        <div key={index} className="text-xs text-gray-300">*/}
+          {/*          {move}*/}
+          {/*        </div>*/}
+          {/*      ))}*/}
+          {/*    </div>*/}
+          {/*  </div>*/}
+          {/*)}*/}
 
           {/* Instructions */}
           <div className="text-xs text-gray-400 space-y-1">

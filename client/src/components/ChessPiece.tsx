@@ -100,20 +100,20 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         <primitive object={pieceModel} />
         
         {/* Piece symbol */}
-        <Text
-          position={[0, 0.8, 0]}
-          fontSize={0.3}
-          color={piece.color === 'white' ? '#000000' : '#ffffff'}
-          anchorX="center"
-          anchorY="middle"
-          rotation={[-Math.PI / 2, 0, 0]}
-          raycast={() => null}
-        >
-          {piece.type.charAt(0).toUpperCase()}
-        </Text>
+        {/*<Text*/}
+        {/*  position={[0, 0.8, 0]}*/}
+        {/*  fontSize={0.3}*/}
+        {/*  color={piece.color === 'white' ? '#000000' : '#ffffff'}*/}
+        {/*  anchorX="center"*/}
+        {/*  anchorY="middle"*/}
+        {/*  rotation={[-Math.PI / 2, 0, 0]}*/}
+        {/*  raycast={() => null}*/}
+        {/*>*/}
+        {/*  {piece.type.charAt(0).toUpperCase()}*/}
+        {/*</Text>*/}
         
         {/* HP Bar */}
-        <group position={[0, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
+        <group position={[0, bottomUIY, bottomUIZ + 0.25]} rotation={[-Math.PI / 3, 0, 0]}>
           {/* Background bar */}
           <mesh position={[0, 0, 0]} raycast={() => null}>
             <planeGeometry args={[0.8, 0.1]} />
@@ -131,8 +131,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           {/* HP Text */}
           <Text
             position={[0, 0, 0.02]}
-            fontSize={0.06}
-            color="#ffffff"
+            fontSize={0.09}
+            color="#000000"
             anchorX="center"
             anchorY="middle"
             raycast={() => null}
@@ -141,47 +141,51 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           </Text>
         </group>
         
-        {/* Info Button */}
-        <group position={[0.5, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
-          <mesh 
-            onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
-          >
-            <circleGeometry args={[0.1]} />
-            <meshBasicMaterial color="#0066cc" transparent opacity={0.8} />
-          </mesh>
-          <Text
-            position={[0, 0, 0.01]}
-            fontSize={0.08}
-            color="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-            onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
-            raycast={() => null}
-          >
-            i
-          </Text>
-        </group>
-        
-        {/* Heal Button for Bishops */}
-        {canHeal && (
-          <group position={[-0.5, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
-            <mesh 
-              onClick={handleHealToggle}
-            >
-              <circleGeometry args={[0.1]} />
-              <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={0.8} />
-            </mesh>
-            <Text
-              position={[0, 0, 0.01]}
-              fontSize={0.07}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-              onClick={handleHealToggle}
-              raycast={() => null}
-            >
-              H
-            </Text>
+        {/* Info & Heal Buttons */}
+        {(canHeal ? true : true) && (
+          <group position={[0.5, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
+            {/* Heal Button for Bishops */}
+            {canHeal && (
+              <group position={[-0.22, 0, 0]}>
+                <mesh 
+                  onClick={handleHealToggle}
+                >
+                  <circleGeometry args={[0.1]} />
+                  <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={0.8} />
+                </mesh>
+                <Text
+                  position={[0, 0, 0.01]}
+                  fontSize={0.07}
+                  color="#ffffff"
+                  anchorX="center"
+                  anchorY="middle"
+                  onClick={handleHealToggle}
+                  raycast={() => null}
+                >
+                  H
+                </Text>
+              </group>
+            )}
+            {/* Info Button */}
+            <group position={[0, 0, 0]}>
+              <mesh 
+                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+              >
+                <circleGeometry args={[0.1]} />
+                <meshBasicMaterial color="#0066cc" transparent opacity={0.8} />
+              </mesh>
+              <Text
+                position={[0, 0, 0.01]}
+                fontSize={0.08}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+                raycast={() => null}
+              >
+                i
+              </Text>
+            </group>
           </group>
         )}
         
