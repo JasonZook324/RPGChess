@@ -51,7 +51,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   }
   
   // Memoized piece model and bottom UI position
-  const { pieceModel, bottomUIY } = useMemo(() => {
+  const { pieceModel, bottomUIY, bottomUIZ } = useMemo(() => {
     // Clone the scene to avoid sharing materials between instances
     const clonedScene = scene.clone();
     
@@ -76,12 +76,16 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
       }
     });
     
-    // Calculate bottom UI position based on model height
+    // Calculate bottom UI position and offset based on model dimensions
     const box = new THREE.Box3().setFromObject(clonedScene);
     const modelBottom = box.min.y;
-    const uiY = Math.max(modelBottom + 0.05, 0.05); // Place UI above model base with clearance
+    const uiY = Math.max(modelBottom + 0.02, 0.02); // Keep UI above board level
     
-    return { pieceModel: clonedScene, bottomUIY: uiY };
+    // Calculate Z offset to place UI in front of model base
+    const modelDepth = box.max.z - box.min.z;
+    const uiZ = (modelDepth / 2) + 0.15; // Place UI in front of piece
+    
+    return { pieceModel: clonedScene, bottomUIY: uiY, bottomUIZ: uiZ };
   }, [scene, pieceColor]);
   
   const handleHealToggle = (e: any) => {
@@ -109,7 +113,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         </Text>
         
         {/* HP Bar */}
-        <group position={[0, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+        <group position={[0, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
           {/* Background bar */}
           <mesh position={[0, 0, 0]} raycast={() => null}>
             <planeGeometry args={[0.8, 0.1]} />
@@ -138,7 +142,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         </group>
         
         {/* Info Button */}
-        <group position={[0.5, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+        <group position={[0.5, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
           <mesh 
             onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
           >
@@ -160,7 +164,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         
         {/* Heal Button for Bishops */}
         {canHeal && (
-          <group position={[-0.5, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+          <group position={[-0.5, bottomUIY, bottomUIZ]} rotation={[-Math.PI / 4, 0, 0]}>
             <mesh 
               onClick={handleHealToggle}
             >
