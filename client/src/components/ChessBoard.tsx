@@ -67,7 +67,7 @@ export default function ChessBoard() {
           <meshStandardMaterial 
             color={color}
             map={isLight ? woodTexture : null}
-            transparent={isValidMove || isHovered}
+            transparent={!!(isValidMove || isHovered)}
             opacity={isValidMove ? 0.9 : isHovered ? highlightOpacity : 1}
           />
         </mesh>
@@ -88,7 +88,6 @@ export default function ChessBoard() {
             position={[(col - 3.5) * 1.5, 0.30, (row - 3.5) * 1.5]}
             row={row}
             col={col}
-            hovered={hoveredSquare && hoveredSquare.row === row && hoveredSquare.col === col}
           />
         );
       }
@@ -97,6 +96,12 @@ export default function ChessBoard() {
 
   return (
     <group ref={boardRef} position={[0, 0, 0]}>
+      {/* Board border frame */}
+      <mesh position={[0, -0.1, 0]} receiveShadow>
+        <boxGeometry args={[13, 0.1, 13]} />
+        <meshStandardMaterial color="#654321" />
+      </mesh>
+      
       {/* Board base */}
       <mesh position={[0, -0.2, 0]} receiveShadow>
         <boxGeometry args={[12, 0.3, 12]} />
