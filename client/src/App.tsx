@@ -39,27 +39,31 @@ function App() {
               padding: '20px',
               boxSizing: 'border-box'
             }}>
-              <Canvas
-                shadows
-                camera={{
-                  position: [0, 12, 8],
-                  fov: 45,
-                  near: 0.1,
-                  far: 1000
-                }}
-                gl={{
-                  antialias: true,
-                  powerPreference: "default"
-                }}
-                style={{
-                  borderRadius: '8px',
-                  border: '2px solid #333'
-                }}
-              >
-                <color attach="background" args={["#1a1a1a"]} />
-                
-                {/* Lighting */}
-                <ambientLight intensity={0.3} />
+              <div style={{
+                width: '100%',
+                height: '100%',
+                border: '3px solid #666',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                backgroundColor: '#1a1a1a'
+              }}>
+                <Canvas
+                  shadows
+                  camera={{
+                    position: [0, 12, 8],
+                    fov: 45,
+                    near: 0.1,
+                    far: 1000
+                  }}
+                  gl={{
+                    antialias: true,
+                    powerPreference: "default"
+                  }}
+                >
+                  <color attach="background" args={["#1a1a1a"]} />
+                  
+                  {/* Lighting */}
+                  <ambientLight intensity={0.3} />
                 <directionalLight
                   position={[10, 20, 10]}
                   intensity={1.5}
@@ -78,6 +82,7 @@ function App() {
                   <ChessGame />
                 </Suspense>
               </Canvas>
+              </div>
             </div>
           )}
         </KeyboardControls>
