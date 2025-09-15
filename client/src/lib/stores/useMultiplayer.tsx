@@ -20,17 +20,23 @@ interface GameRoom {
 
 interface MultiplayerState {
   socket: Socket | null;
-  isConnected: boolean;
+  connectionStatus: 'disconnected' | 'connecting' | 'connected';
+  isConnected: boolean; // Kept for backward compatibility
   roomId: string | null;
   playerRole: 'white' | 'black' | null;
   opponent: Player | null;
   gameRoom: GameRoom | null;
   isWaitingForPlayer: boolean;
   error: string | null;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  isInMultiplayerMode: boolean; // Track if user is in multiplayer session
   
   // Actions
   connect: (userId: number, username: string) => void;
   disconnect: () => void;
+  leaveRoom: () => void; // Leave current room but stay connected
+  exitMultiplayer: () => void; // Exit multiplayer mode entirely
   createRoom: () => void;
   joinRoom: (roomId: string) => void;
   makeMove: (move: any, gameState: any) => void;
@@ -47,6 +53,7 @@ interface MultiplayerState {
 export const useMultiplayer = create<MultiplayerState>()(
   subscribeWithSelector((set, get) => ({
     socket: null,
+    connectionStatus: 'disconnected',
     isConnected: false,
     roomId: null,
     playerRole: null,
@@ -54,35 +61,85 @@ export const useMultiplayer = create<MultiplayerState>()(
     gameRoom: null,
     isWaitingForPlayer: false,
     error: null,
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    isInMultiplayerMode: false,
 
     connect: (userId: number, username: string) => {
+      const { socket: existingSocket, connectionStatus } = get();
+      
+      // Prevent multiple connection attempts
+      if (connectionStatus === 'connecting' || connectionStatus === 'connected') {
+        console.log('Connection already in progress or established, skipping...');
+        return;
+      }
+      
+      // Clean up existing socket if any
+      if (existingSocket) {
+        console.log('Cleaning up existing socket before reconnecting...');
+        existingSocket.removeAllListeners();
+        existingSocket.disconnect();
+      }
+      
+      set({ connectionStatus: 'connecting', error: null });
+      
       const socket = io('/', {
         withCredentials: true,
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        timeout: 10000,
+        reconnection: false // We'll handle reconnection manually
       });
 
       socket.on('connect', () => {
         console.log('Connected to server');
-        set({ isConnected: true });
-        
-        // Authenticate with the server
-        socket.emit('authenticate', { userId, username });
+        set({ 
+          connectionStatus: 'connected',
+          isConnected: true,
+          reconnectAttempts: 0,
+          error: null,
+          isInMultiplayerMode: true
+        });
       });
 
       socket.on('authenticated', (data: any) => {
         console.log('Authenticated with server:', data);
+        // Server sends back the authenticated user data
+        if (data.success) {
+          set({ error: null });
+        }
       });
 
-      socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+      socket.on('disconnect', (reason) => {
+        console.log('Disconnected from server, reason:', reason);
+        const state = get();
+        
         set({ 
+          connectionStatus: 'disconnected',
           isConnected: false,
           roomId: null,
           playerRole: null,
           opponent: null,
           gameRoom: null,
-          isWaitingForPlayer: false
+          isWaitingForPlayer: false,
+          isInMultiplayerMode: false
         });
+        
+        // Only attempt reconnection for unexpected disconnects (not manual disconnects)
+        if (reason !== 'io client disconnect' && state.reconnectAttempts < state.maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 30000);
+          console.log(`Attempting reconnection in ${delay}ms (attempt ${state.reconnectAttempts + 1}/${state.maxReconnectAttempts})`);
+          
+          set({ reconnectAttempts: state.reconnectAttempts + 1 });
+          
+          setTimeout(() => {
+            const currentState = get();
+            if (currentState.connectionStatus === 'disconnected') {
+              currentState.connect(userId, username);
+            }
+          }, delay);
+        } else if (state.reconnectAttempts >= state.maxReconnectAttempts) {
+          set({ error: 'Connection failed after multiple attempts. Please refresh and try again.' });
+        }
       });
 
       socket.on('room_created', (data: { roomId: string; role: 'white' | 'black' }) => {
@@ -129,6 +186,31 @@ export const useMultiplayer = create<MultiplayerState>()(
         set({ error: `${data.player} has disconnected` });
       });
 
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        const state = get();
+        set({ 
+          connectionStatus: 'disconnected',
+          isConnected: false,
+          error: `Connection failed: ${error.message || error}` 
+        });
+        
+        // Retry connection with exponential backoff
+        if (state.reconnectAttempts < state.maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 30000);
+          console.log(`Retrying connection in ${delay}ms (attempt ${state.reconnectAttempts + 1}/${state.maxReconnectAttempts})`);
+          
+          set({ reconnectAttempts: state.reconnectAttempts + 1 });
+          
+          setTimeout(() => {
+            const currentState = get();
+            if (currentState.connectionStatus === 'disconnected') {
+              currentState.connect(userId, username);
+            }
+          }, delay);
+        }
+      });
+
       socket.on('error', (data: { message: string }) => {
         console.error('Socket error:', data.message);
         set({ error: data.message });
@@ -139,19 +221,75 @@ export const useMultiplayer = create<MultiplayerState>()(
 
     disconnect: () => {
       const { socket } = get();
+      console.log('Manual disconnect requested');
+      
       if (socket) {
+        socket.removeAllListeners();
         socket.disconnect();
-        set({ 
-          socket: null,
-          isConnected: false,
-          roomId: null,
-          playerRole: null,
-          opponent: null,
-          gameRoom: null,
-          isWaitingForPlayer: false,
-          error: null
-        });
       }
+      
+      set({ 
+        socket: null,
+        connectionStatus: 'disconnected',
+        isConnected: false,
+        roomId: null,
+        playerRole: null,
+        opponent: null,
+        gameRoom: null,
+        isWaitingForPlayer: false,
+        error: null,
+        reconnectAttempts: 0, // Reset reconnection attempts on manual disconnect
+        isInMultiplayerMode: false
+      });
+    },
+
+    leaveRoom: () => {
+      const { socket, roomId } = get();
+      console.log('Leaving room but staying connected');
+      
+      if (socket && socket.connected && roomId) {
+        socket.emit('leave_room', { roomId });
+      }
+      
+      set({ 
+        roomId: null,
+        playerRole: null,
+        opponent: null,
+        gameRoom: null,
+        isWaitingForPlayer: false,
+        error: null
+      });
+    },
+
+    exitMultiplayer: () => {
+      const { socket } = get();
+      console.log('Exiting multiplayer mode entirely');
+      
+      // Leave room first if in one
+      const state = get();
+      if (state.roomId) {
+        state.leaveRoom();
+      }
+      
+      // Then disconnect
+      if (socket) {
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
+      
+      set({ 
+        socket: null,
+        connectionStatus: 'disconnected',
+        isConnected: false,
+        roomId: null,
+        playerRole: null,
+        opponent: null,
+        gameRoom: null,
+        isWaitingForPlayer: false,
+        error: null,
+        reconnectAttempts: 0,
+        isInMultiplayerMode: false
+      });
     },
 
     createRoom: () => {

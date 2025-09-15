@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 // Session middleware
-app.use(session({
+const sessionMiddleware = session({
   store: new PostgresStore({
     conString: process.env.DATABASE_URL,
     tableName: 'session', // Uses connect-pg-simple's default table
@@ -32,7 +32,10 @@ app.use(session({
     sameSite: 'lax', // Prevent CSRF while allowing normal navigation
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   },
-}));
+});
+
+app.use(sessionMiddleware);
+app.set('sessionMiddleware', sessionMiddleware); // Make available to Socket.IO
 
 app.use((req, res, next) => {
   const start = Date.now();

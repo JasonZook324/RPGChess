@@ -1,9 +1,11 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { Server as SocketIOServer } from "socket.io";
+import { Server as SocketIOServer, Socket } from "socket.io";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";
+import session from "express-session";
 
 // Extend Express Session interface
 declare module 'express-session' {
@@ -12,6 +14,13 @@ declare module 'express-session' {
     username?: string;
     isGuest?: boolean;
   }
+}
+
+// Extend Socket.IO Socket interface to include our custom properties
+interface AuthenticatedSocket extends Socket {
+  userId: number;
+  username: string;
+  isGuest: boolean;
 }
 
 // Authentication middleware
@@ -29,6 +38,8 @@ const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get the session middleware from the app to share with Socket.IO
+  const sessionMiddleware = app.get('sessionMiddleware');
   // Authentication routes
   
   // Register new user
@@ -233,196 +244,407 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Initialize Socket.IO
+  // Initialize Socket.IO with proper CORS and session sharing
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' ? false : "*",
+      origin: process.env.NODE_ENV === 'production' ? false : ["http://localhost:5000", "http://127.0.0.1:5000"],
       methods: ["GET", "POST"],
       credentials: true
-    }
+    },
+    allowEIO3: true
+  });
+
+  // Configure Socket.IO to use Express sessions
+  const wrap = (middleware: any) => (socket: any, next: any) => 
+    middleware(socket.request, {}, next);
+  
+  if (sessionMiddleware) {
+    io.use(wrap(sessionMiddleware));
+  }
+
+  // Input validation schemas for socket events
+  const createRoomSchema = z.object({});
+  const joinRoomSchema = z.object({
+    roomId: z.string().min(1).max(20)
+  });
+  const makeMoveSchema = z.object({
+    roomId: z.string().min(1).max(20),
+    move: z.object({
+      from: z.string(),
+      to: z.string(),
+      piece: z.string(),
+      moveNumber: z.number().int().positive()
+    }),
+    gameState: z.any()
+  });
+  const gameEndSchema = z.object({
+    roomId: z.string().min(1).max(20),
+    winner: z.enum(['white', 'black', 'draw']),
+    gameState: z.any()
   });
 
   // Game room management
   interface GameRoom {
     id: string;
+    gameId?: number; // Database game record ID
     players: {
       white?: { id: number; username: string; socketId: string };
       black?: { id: number; username: string; socketId: string };
     };
     gameState: any;
     status: 'waiting' | 'playing' | 'finished';
+    currentTurn: 'white' | 'black';
+    moveCount: number;
     createdAt: Date;
   }
 
   const gameRooms = new Map<string, GameRoom>();
-  const playerSockets = new Map<string, { userId: number; username: string; roomId?: string }>();
+  const playerSockets = new Map<string, { userId: number; username: string; roomId?: string; isGuest: boolean }>();
 
   // Generate unique room ID
   const generateRoomId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
+  // Secure session-based authentication middleware for Socket.IO
+  const authenticateSocket = async (socket: any, next: any) => {
+    try {
+      // Access session data from the socket request
+      const sessionData = socket.request.session;
+      
+      if (!sessionData) {
+        return next(new Error('No session found'));
+      }
+
+      const userId = sessionData.userId;
+      const username = sessionData.username;
+      const isGuest = sessionData.isGuest || false;
+      
+      if (!userId || !username) {
+        return next(new Error('User not authenticated'));
+      }
+
+      // Verify user exists in database
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return next(new Error('User not found'));
+      }
+
+      // Store authenticated user data on socket
+      socket.userId = userId;
+      socket.username = username;
+      socket.isGuest = isGuest;
+      
+      console.log(`Socket authenticated for user: ${username} (${userId})`);
+      next();
+    } catch (error) {
+      console.error('Socket authentication error:', error);
+      next(new Error('Authentication failed'));
+    }
+  };
+
+  // Clean up stale rooms periodically
+  const cleanupStaleRooms = () => {
+    const now = Date.now();
+    const STALE_ROOM_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    
+    for (const [roomId, room] of Array.from(gameRooms.entries())) {
+      const roomAge = now - room.createdAt.getTime();
+      if (roomAge > STALE_ROOM_TIMEOUT && room.status !== 'playing') {
+        gameRooms.delete(roomId);
+        console.log(`Cleaned up stale room: ${roomId}`);
+      }
+    }
+  };
+
+  // Run cleanup every 10 minutes
+  setInterval(cleanupStaleRooms, 10 * 60 * 1000);
+
+  // Apply authentication middleware
+  io.use(authenticateSocket);
+
   // Socket.IO connection handling
   io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
-
-    socket.on('authenticate', async (data: { userId: number; username: string }) => {
-      const { userId, username } = data;
-      playerSockets.set(socket.id, { userId, username });
-      socket.emit('authenticated', { success: true });
-      console.log(`User authenticated: ${username} (${userId})`);
+    // Cast to AuthenticatedSocket since it has been authenticated by middleware
+    const authSocket = socket as AuthenticatedSocket;
+    console.log(`Socket connected: ${authSocket.id} for user: ${authSocket.username} (${authSocket.userId})`);
+    
+    // Store authenticated user in playerSockets
+    playerSockets.set(socket.id, {
+      userId: authSocket.userId,
+      username: authSocket.username,
+      isGuest: authSocket.isGuest
     });
+    
+    socket.emit('authenticated', { success: true, userId: authSocket.userId, username: authSocket.username });
 
-    socket.on('create_room', () => {
-      const player = playerSockets.get(socket.id);
-      if (!player) {
-        socket.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const roomId = generateRoomId();
-      const room: GameRoom = {
-        id: roomId,
-        players: {
-          white: { id: player.userId, username: player.username, socketId: socket.id }
-        },
-        gameState: null,
-        status: 'waiting',
-        createdAt: new Date()
-      };
-
-      gameRooms.set(roomId, room);
-      player.roomId = roomId;
-      socket.join(roomId);
-
-      socket.emit('room_created', { roomId, role: 'white' });
-      console.log(`Room created: ${roomId} by ${player.username}`);
-    });
-
-    socket.on('join_room', (data: { roomId: string }) => {
-      const player = playerSockets.get(socket.id);
-      if (!player) {
-        socket.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const room = gameRooms.get(data.roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
-
-      if (room.status !== 'waiting') {
-        socket.emit('error', { message: 'Room is not available' });
-        return;
-      }
-
-      if (room.players.black) {
-        socket.emit('error', { message: 'Room is full' });
-        return;
-      }
-
-      // Add player as black
-      room.players.black = { id: player.userId, username: player.username, socketId: socket.id };
-      room.status = 'playing';
-      player.roomId = data.roomId;
-      socket.join(data.roomId);
-
-      // Notify both players that the game can start
-      io.to(data.roomId).emit('game_start', {
-        players: {
-          white: room.players.white,
-          black: room.players.black
-        }
-      });
-
-      console.log(`Player ${player.username} joined room ${data.roomId}`);
-    });
-
-    socket.on('make_move', async (data: { roomId: string; move: any; gameState: any }) => {
-      const player = playerSockets.get(socket.id);
-      if (!player) {
-        socket.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      const room = gameRooms.get(data.roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
-
-      // Verify player is in this room
-      const isWhite = room.players.white?.socketId === socket.id;
-      const isBlack = room.players.black?.socketId === socket.id;
-      
-      if (!isWhite && !isBlack) {
-        socket.emit('error', { message: 'Not a player in this room' });
-        return;
-      }
-
-      // Update room game state
-      room.gameState = data.gameState;
-
-      // Save move to database
+    socket.on('create_room', (data) => {
       try {
-        const gameRecord = await storage.createGame({
-          player1Id: room.players.white!.id,
-          player2Id: room.players.black!.id,
-          gameState: data.gameState,
-          status: 'playing'
-        });
+        createRoomSchema.parse(data || {});
+        
+        const player = playerSockets.get(socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
 
-        await storage.addGameMove({
-          gameId: gameRecord.id,
-          playerId: player.userId,
-          moveNumber: data.move.moveNumber || 1,
-          moveData: JSON.stringify(data.move)
-        });
+        const roomId = generateRoomId();
+        const room: GameRoom = {
+          id: roomId,
+          players: {
+            white: { id: player.userId, username: player.username, socketId: socket.id }
+          },
+          gameState: null,
+          status: 'waiting',
+          currentTurn: 'white',
+          moveCount: 0,
+          createdAt: new Date()
+        };
+
+        gameRooms.set(roomId, room);
+        player.roomId = roomId;
+        socket.join(roomId);
+
+        socket.emit('room_created', { roomId, role: 'white' });
+        console.log(`Room created: ${roomId} by ${player.username}`);
       } catch (error) {
-        console.error('Database error:', error);
+        console.error('Create room error:', error);
+        socket.emit('error', { message: 'Invalid request data' });
       }
-
-      // Broadcast move to other player
-      socket.to(data.roomId).emit('opponent_move', {
-        move: data.move,
-        gameState: data.gameState,
-        player: isWhite ? 'white' : 'black'
-      });
-
-      console.log(`Move made in room ${data.roomId} by ${player.username}`);
     });
 
-    socket.on('game_end', async (data: { roomId: string; winner: string; gameState: any }) => {
-      const room = gameRooms.get(data.roomId);
-      if (room) {
+    socket.on('join_room', async (data) => {
+      try {
+        const { roomId } = joinRoomSchema.parse(data);
+        
+        const player = playerSockets.get(socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
+
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        if (room.status !== 'waiting') {
+          socket.emit('error', { message: 'Room is not available' });
+          return;
+        }
+
+        if (room.players.black) {
+          socket.emit('error', { message: 'Room is full' });
+          return;
+        }
+
+        // Add player as black
+        room.players.black = { id: player.userId, username: player.username, socketId: socket.id };
+        room.status = 'playing';
+        player.roomId = roomId;
+        socket.join(roomId);
+
+        // Create database game record once when game starts
+        try {
+          const gameRecord = await storage.createGame({
+            player1Id: room.players.white!.id,
+            player2Id: room.players.black.id,
+            gameState: { initial: true },
+            status: 'active'
+          });
+          room.gameId = gameRecord.id;
+          console.log(`Game record created: ${gameRecord.id} for room ${roomId}`);
+        } catch (dbError) {
+          console.error('Failed to create game record:', dbError);
+        }
+
+        // Notify both players that the game can start
+        io.to(roomId).emit('game_start', {
+          players: {
+            white: room.players.white,
+            black: room.players.black
+          },
+          gameId: room.gameId
+        });
+
+        console.log(`Player ${player.username} joined room ${roomId}`);
+      } catch (error) {
+        console.error('Join room error:', error);
+        socket.emit('error', { message: 'Invalid request data' });
+      }
+    });
+
+    socket.on('make_move', async (data) => {
+      try {
+        const { roomId, move, gameState } = makeMoveSchema.parse(data);
+        
+        const player = playerSockets.get(socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
+
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        if (room.status !== 'playing') {
+          socket.emit('error', { message: 'Game is not active' });
+          return;
+        }
+
+        // Verify player is in this room
+        const isWhite = room.players.white?.socketId === socket.id;
+        const isBlack = room.players.black?.socketId === socket.id;
+        
+        if (!isWhite && !isBlack) {
+          socket.emit('error', { message: 'Not a player in this room' });
+          return;
+        }
+
+        const playerColor = isWhite ? 'white' : 'black';
+        
+        // Validate turn order
+        if (room.currentTurn !== playerColor) {
+          socket.emit('error', { message: 'Not your turn' });
+          return;
+        }
+
+        // Validate move number sequence
+        if (move.moveNumber !== room.moveCount + 1) {
+          socket.emit('error', { message: 'Invalid move sequence' });
+          return;
+        }
+
+        // Update room state
+        room.gameState = gameState;
+        room.currentTurn = playerColor === 'white' ? 'black' : 'white';
+        room.moveCount = move.moveNumber;
+
+        // Save move to database (if game record exists)
+        if (room.gameId) {
+          try {
+            await storage.updateGameState(room.gameId, gameState);
+            await storage.addGameMove({
+              gameId: room.gameId,
+              playerId: player.userId,
+              moveNumber: move.moveNumber,
+              moveData: move
+            });
+          } catch (error) {
+            console.error('Database error saving move:', error);
+          }
+        }
+
+        // Broadcast move to other player
+        socket.to(roomId).emit('opponent_move', {
+          move,
+          gameState,
+          player: playerColor,
+          moveNumber: move.moveNumber
+        });
+
+        console.log(`Move ${move.moveNumber} made in room ${roomId} by ${player.username} (${playerColor})`);
+      } catch (error) {
+        console.error('Make move error:', error);
+        socket.emit('error', { message: 'Invalid move data' });
+      }
+    });
+
+    socket.on('game_end', async (data) => {
+      try {
+        const { roomId, winner, gameState } = gameEndSchema.parse(data);
+        
+        const player = playerSockets.get(socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
+
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        // Verify player is in this room
+        const isWhite = room.players.white?.socketId === socket.id;
+        const isBlack = room.players.black?.socketId === socket.id;
+        
+        if (!isWhite && !isBlack) {
+          socket.emit('error', { message: 'Not a player in this room' });
+          return;
+        }
+
         room.status = 'finished';
-        room.gameState = data.gameState;
+        room.gameState = gameState;
 
         // Update database with final result
-        try {
-          // TODO: Update game record with winner and final state
-          console.log(`Game ended in room ${data.roomId}, winner: ${data.winner}`);
-        } catch (error) {
-          console.error('Database error:', error);
+        if (room.gameId) {
+          try {
+            await storage.updateGameStatus(room.gameId, 'completed', winner);
+            await storage.updateGameState(room.gameId, gameState);
+            console.log(`Game ${room.gameId} ended in room ${roomId}, winner: ${winner}`);
+          } catch (error) {
+            console.error('Database error updating game end:', error);
+          }
         }
 
-        io.to(data.roomId).emit('game_ended', { winner: data.winner });
+        io.to(roomId).emit('game_ended', { winner, gameState });
+        
+        // Clean up room after a delay
+        setTimeout(() => {
+          gameRooms.delete(roomId);
+          console.log(`Room ${roomId} cleaned up after game end`);
+        }, 60000); // Clean up after 1 minute
+        
+      } catch (error) {
+        console.error('Game end error:', error);
+        socket.emit('error', { message: 'Invalid game end data' });
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
       const player = playerSockets.get(socket.id);
+      console.log(`Socket disconnected: ${socket.id} (${player?.username || 'unknown'}) - Reason: ${reason}`);
+      
       if (player && player.roomId) {
         const room = gameRooms.get(player.roomId);
         if (room) {
           // Notify other player about disconnection
           socket.to(player.roomId).emit('player_disconnected', {
-            player: player.username
+            player: player.username,
+            playerId: player.userId
           });
+
+          // Handle room cleanup based on game status
+          if (room.status === 'waiting') {
+            // Remove waiting room immediately
+            gameRooms.delete(player.roomId);
+            console.log(`Removed waiting room ${player.roomId} due to creator disconnect`);
+          } else if (room.status === 'playing') {
+            // Mark room as abandoned, clean up after timeout
+            setTimeout(async () => {
+              const currentRoom = gameRooms.get(player.roomId!);
+              if (currentRoom && currentRoom.status === 'playing') {
+                // Update game status in database
+                if (currentRoom.gameId) {
+                  try {
+                    await storage.updateGameStatus(currentRoom.gameId, 'abandoned');
+                  } catch (error) {
+                    console.error('Database error marking game as abandoned:', error);
+                  }
+                }
+                gameRooms.delete(player.roomId!);
+                console.log(`Cleaned up abandoned room ${player.roomId} after disconnect timeout`);
+              }
+            }, 5 * 60 * 1000); // 5 minutes timeout
+          }
         }
       }
       
       playerSockets.delete(socket.id);
-      console.log(`Socket disconnected: ${socket.id}`);
     });
   });
 

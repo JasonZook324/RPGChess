@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMultiplayer } from "../lib/stores/useMultiplayer";
 import { useAuth } from "../lib/stores/useAuth";
 import { Button } from "./ui/button";
@@ -18,9 +18,12 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
   const { 
     connect, 
     disconnect, 
+    leaveRoom,
+    exitMultiplayer,
     createRoom, 
     joinRoom, 
-    isConnected, 
+    isConnected,
+    connectionStatus, 
     roomId, 
     playerRole, 
     opponent, 
@@ -31,23 +34,36 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
 
   const [joinRoomId, setJoinRoomId] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
+  const hasConnectedRef = useRef(false);
+  const componentIdRef = useRef(Math.random().toString(36));
 
   useEffect(() => {
-    if (user && !isConnected) {
+    const componentId = componentIdRef.current;
+    console.log(`[${componentId}] MultiplayerLobby mount effect, user:`, user?.username, 'connectionStatus:', connectionStatus);
+    
+    if (user && connectionStatus === 'disconnected') {
       setIsConnecting(true);
+      console.log(`[${componentId}] Initiating connection for user:`, user.username);
       connect(user.id, user.username);
     }
-
+    
+    // Keep socket connected on unmount - socket should persist for entire multiplayer session
     return () => {
-      disconnect();
+      console.log(`[${componentId}] MultiplayerLobby unmounting, keeping socket connected`);
+      // Don't disconnect here - socket persists for the entire multiplayer session
+      // Only disconnect when user explicitly exits multiplayer mode
     };
-  }, [user, isConnected, connect, disconnect]);
+  }, [user?.id]); // Only depend on user id to avoid connection loops
 
   useEffect(() => {
-    if (isConnected) {
+    const componentId = componentIdRef.current;
+    console.log(`[${componentId}] Connection status changed to:`, connectionStatus);
+    if (connectionStatus === 'connected') {
       setIsConnecting(false);
+    } else if (connectionStatus === 'connecting') {
+      setIsConnecting(true);
     }
-  }, [isConnected]);
+  }, [connectionStatus]);
 
   useEffect(() => {
     if (opponent) {
@@ -80,7 +96,7 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
     }
   };
 
-  if (isConnecting) {
+  if (isConnecting || connectionStatus === 'connecting') {
     return (
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <Card className="w-96 bg-gray-900 text-white border-gray-600">
@@ -95,7 +111,7 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
     );
   }
 
-  if (!isConnected) {
+  if (connectionStatus === 'disconnected') {
     return (
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <Card className="w-96 bg-gray-900 text-white border-gray-600">
@@ -106,7 +122,14 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
             <div className="text-center text-gray-300">
               Unable to connect to multiplayer server. Please try again.
             </div>
-            <Button onClick={onBack} variant="outline" className="w-full border-gray-600 bg-gray-800 text-white hover:bg-gray-700">
+            <Button 
+              onClick={() => {
+                exitMultiplayer();
+                onBack();
+              }} 
+              variant="outline" 
+              className="w-full border-gray-600 bg-gray-800 text-white hover:bg-gray-700"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Menu
             </Button>
@@ -165,7 +188,10 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
             )}
 
             <Button 
-              onClick={onBack} 
+              onClick={() => {
+                leaveRoom();
+                onBack();
+              }} 
               variant="outline" 
               className="w-full border-gray-600 bg-gray-800 text-white hover:bg-gray-700"
             >
@@ -203,7 +229,7 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
             <Button 
               onClick={handleCreateRoom}
               className="w-full bg-green-600 hover:bg-green-700 py-4 text-lg"
-              disabled={!isConnected}
+              disabled={connectionStatus !== 'connected'}
             >
               <Gamepad2 className="w-5 h-5 mr-2" />
               Create Room
@@ -238,7 +264,7 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
             <Button 
               onClick={handleJoinRoom}
               className="w-full bg-blue-600 hover:bg-blue-700 py-4 text-lg"
-              disabled={!isConnected || !joinRoomId.trim()}
+              disabled={connectionStatus !== 'connected' || !joinRoomId.trim()}
             >
               <Users className="w-5 h-5 mr-2" />
               Join Room
@@ -247,7 +273,10 @@ export default function MultiplayerLobby({ onBack, onGameStart }: MultiplayerLob
 
           {/* Back Button */}
           <Button 
-            onClick={onBack} 
+            onClick={() => {
+              exitMultiplayer();
+              onBack();
+            }} 
             variant="outline" 
             className="w-full border-gray-600 bg-gray-800 text-white hover:bg-gray-700"
           >
