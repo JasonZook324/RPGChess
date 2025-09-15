@@ -27,7 +27,7 @@ function App() {
   }, []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', backgroundColor: '#0a0a0a' }}>
       {showCanvas && (
         <KeyboardControls map={controls}>
           {!gameMode && <GameModeSelector />}
@@ -46,28 +46,28 @@ function App() {
                 powerPreference: "default"
               }}
             >
-              <color attach="background" args={["#1a1a1a"]} />
-              
-              {/* Lighting */}
-              <ambientLight intensity={0.3} />
-              <directionalLight
-                position={[10, 20, 10]}
-                intensity={1.5}
-                castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
-                shadow-camera-far={50}
-                shadow-camera-left={-20}
-                shadow-camera-right={20}
-                shadow-camera-top={20}
-                shadow-camera-bottom={-20}
-              />
-              <pointLight position={[0, 10, 0]} intensity={0.5} />
+                  <color attach="background" args={["#1a1a1a"]} />
+                  
+                  {/* Lighting */}
+                  <ambientLight intensity={0.3} />
+                <directionalLight
+                  position={[10, 20, 10]}
+                  intensity={1.5}
+                  castShadow
+                  shadow-mapSize-width={2048}
+                  shadow-mapSize-height={2048}
+                  shadow-camera-far={50}
+                  shadow-camera-left={-20}
+                  shadow-camera-right={20}
+                  shadow-camera-top={20}
+                  shadow-camera-bottom={-20}
+                />
+                <pointLight position={[0, 10, 0]} intensity={0.5} />
 
-              <Suspense fallback={null}>
-                <ChessGame />
-              </Suspense>
-            </Canvas>
+                <Suspense fallback={null}>
+                  <ChessGame />
+                </Suspense>
+              </Canvas>
           )}
         </KeyboardControls>
       )}
