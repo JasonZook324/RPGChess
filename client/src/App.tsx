@@ -27,47 +27,58 @@ function App() {
   }, []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', backgroundColor: '#0a0a0a' }}>
       {showCanvas && (
         <KeyboardControls map={controls}>
           {!gameMode && <GameModeSelector />}
           
           {gameMode && (
-            <Canvas
-              shadows
-              camera={{
-                position: [0, 12, 8],
-                fov: 45,
-                near: 0.1,
-                far: 1000
-              }}
-              gl={{
-                antialias: true,
-                powerPreference: "default"
-              }}
-            >
-              <color attach="background" args={["#1a1a1a"]} />
-              
-              {/* Lighting */}
-              <ambientLight intensity={0.3} />
-              <directionalLight
-                position={[10, 20, 10]}
-                intensity={1.5}
-                castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
-                shadow-camera-far={50}
-                shadow-camera-left={-20}
-                shadow-camera-right={20}
-                shadow-camera-top={20}
-                shadow-camera-bottom={-20}
-              />
-              <pointLight position={[0, 10, 0]} intensity={0.5} />
+            <div style={{ 
+              width: '100%', 
+              height: '100%', 
+              padding: '20px',
+              boxSizing: 'border-box'
+            }}>
+              <Canvas
+                shadows
+                camera={{
+                  position: [0, 12, 8],
+                  fov: 45,
+                  near: 0.1,
+                  far: 1000
+                }}
+                gl={{
+                  antialias: true,
+                  powerPreference: "default"
+                }}
+                style={{
+                  borderRadius: '8px',
+                  border: '2px solid #333'
+                }}
+              >
+                <color attach="background" args={["#1a1a1a"]} />
+                
+                {/* Lighting */}
+                <ambientLight intensity={0.3} />
+                <directionalLight
+                  position={[10, 20, 10]}
+                  intensity={1.5}
+                  castShadow
+                  shadow-mapSize-width={2048}
+                  shadow-mapSize-height={2048}
+                  shadow-camera-far={50}
+                  shadow-camera-left={-20}
+                  shadow-camera-right={20}
+                  shadow-camera-top={20}
+                  shadow-camera-bottom={-20}
+                />
+                <pointLight position={[0, 10, 0]} intensity={0.5} />
 
-              <Suspense fallback={null}>
-                <ChessGame />
-              </Suspense>
-            </Canvas>
+                <Suspense fallback={null}>
+                  <ChessGame />
+                </Suspense>
+              </Canvas>
+            </div>
           )}
         </KeyboardControls>
       )}
