@@ -57,7 +57,7 @@ export default function ChessBoard() {
       squares.push(
         <mesh
           key={`${row}-${col}`}
-          position={[(col - 3.5) * 1.5, 0, (row - 3.5) * 1.5]}
+          position={[(col - 3.5) * 1.5, 1, (row - 3.5) * 1.5]}
           receiveShadow
           onClick={handleSquareClickWrapper}
           onPointerOver={() => setHoveredSquare({ row, col })}
@@ -85,7 +85,7 @@ export default function ChessBoard() {
           <ChessPiece
             key={`${row}-${col}-${piece.type}-${piece.color}`}
             piece={piece}
-            position={[(col - 3.5) * 1.5, 0.30, (row - 3.5) * 1.5]}
+            position={[(col - 3.5) * 1.5, 1.40, (row - 3.5) * 1.5]}
             row={row}
             col={col}
           />
@@ -95,15 +95,15 @@ export default function ChessBoard() {
   }
 
   return (
-    <group ref={boardRef} position={[0, 0, 0]}>
+    <group ref={boardRef} position={[0, 1, 0]}>
       {/* Board border frame */}
-      <mesh position={[0, -0.1, 0]} receiveShadow>
+      <mesh position={[0, 0.9, 0]} receiveShadow>
         <boxGeometry args={[13, 0.1, 13]} />
         <meshStandardMaterial color="#654321" />
       </mesh>
       
       {/* Board base */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
+      <mesh position={[0, 0.8, 0]} receiveShadow>
         <boxGeometry args={[12, 0.3, 12]} />
         <meshStandardMaterial color="#8B4513" map={woodTexture} />
       </mesh>
