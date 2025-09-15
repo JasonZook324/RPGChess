@@ -50,8 +50,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     pieceColor = piece.color === 'white' ? '#ffff80' : '#8080ff'; // Brighter when selected
   }
   
-  // Memoized piece model to avoid recreating each render
-  const pieceModel = useMemo(() => {
+  // Memoized piece model and bottom UI position
+  const { pieceModel, bottomUIY } = useMemo(() => {
     // Clone the scene to avoid sharing materials between instances
     const clonedScene = scene.clone();
     
@@ -76,7 +76,12 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
       }
     });
     
-    return clonedScene;
+    // Calculate bottom UI position based on model height
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const modelBottom = box.min.y;
+    const uiY = Math.max(modelBottom + 0.05, 0.05); // Place UI above model base with clearance
+    
+    return { pieceModel: clonedScene, bottomUIY: uiY };
   }, [scene, pieceColor]);
   
   const handleHealToggle = (e: any) => {
@@ -104,7 +109,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         </Text>
         
         {/* HP Bar */}
-        <group position={[0, 1.0, 0]}>
+        <group position={[0, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
           {/* Background bar */}
           <mesh position={[0, 0, 0]} raycast={() => null}>
             <planeGeometry args={[0.8, 0.1]} />
@@ -133,7 +138,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         </group>
         
         {/* Info Button */}
-        <group position={[0.5, 1.0, 0]}>
+        <group position={[0.5, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
           <mesh 
             onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
           >
@@ -155,7 +160,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         
         {/* Heal Button for Bishops */}
         {canHeal && (
-          <group position={[-0.5, 1.0, 0]}>
+          <group position={[-0.5, bottomUIY, 0]} rotation={[-Math.PI / 4, 0, 0]}>
             <mesh 
               onClick={handleHealToggle}
             >
@@ -178,7 +183,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         
         {/* Level Up Indicator */}
         {piece.unspentPoints > 0 && (
-          <group position={[0, 1.2, 0]}>
+          <group position={[0, 1.0, 0]}>
             <mesh raycast={() => null}>
               <circleGeometry args={[0.08]} />
               <meshBasicMaterial color="#ffff00" />
@@ -199,7 +204,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         {/* Info Panel */}
         {showInfo && (
           <Html
-            position={[0, 1.8, 0]}
+            position={[0, 1.5, 0]}
             center
             style={{
               background: 'rgba(0, 0, 0, 0.9)',
@@ -213,6 +218,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
               pointerEvents: 'auto',
               userSelect: 'none'
             }}
+            onPointerDownCapture={(e) => e.stopPropagation()}
           >
             <div>
               <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#ffff80' }}>
