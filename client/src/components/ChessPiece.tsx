@@ -92,7 +92,7 @@ export default function ChessPiece({ piece, position, row, col, hovered }: Chess
 
       {/* HP Bar and buttons, positioned just above the piece */}
       {hovered && (
-        <Html distanceFactor={10} position={[0, pieceHeight + 0.2, 0]} center>
+        <Html distanceFactor={10} position={[0, -pieceHeight, 0]} center>
           <div className="flex flex-row items-center">
             {/* Info button */}
             <button
