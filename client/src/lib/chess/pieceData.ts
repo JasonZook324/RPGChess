@@ -22,32 +22,32 @@ export function getPieceStats(type: ChessPiece['type']): PieceStats {
   const stats: Record<ChessPiece['type'], PieceStats> = {
     pawn: {
       maxHealth: 25,
-      attack: 8,
+      attack: 10,
       defense: 5
     },
     rook: {
       maxHealth: 60,
-      attack: 15,
+      attack: 20,
       defense: 12
     },
     knight: {
       maxHealth: 45,
-      attack: 12,
+      attack: 15,
       defense: 8
     },
     bishop: {
       maxHealth: 40,
-      attack: 10,
+      attack: 12,
       defense: 7
     },
     queen: {
       maxHealth: 80,
-      attack: 18,
+      attack: 30,
       defense: 15
     },
     king: {
       maxHealth: 100,
-      attack: 12,
+      attack: 25,
       defense: 18
     }
   };
