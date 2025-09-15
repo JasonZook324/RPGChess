@@ -22,7 +22,7 @@ const controls = [
 
 function App() {
   const { gameMode } = useChessGame();
-  const { user, isLoading, checkAuth } = useAuth();
+  const { user, isCheckingAuth, checkAuth } = useAuth();
   const [showCanvas, setShowCanvas] = useState(false);
 
   // Check authentication when app loads
@@ -36,7 +36,7 @@ function App() {
   }, []);
 
   // Show loading state while checking authentication
-  if (isLoading) {
+  if (isCheckingAuth) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>

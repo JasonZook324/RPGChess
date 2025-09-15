@@ -9,7 +9,8 @@ export interface User {
 
 interface AuthState {
   user: User | null;
-  isLoading: boolean;
+  isCheckingAuth: boolean;
+  isSubmitting: boolean;
   error: string | null;
   
   // Actions
@@ -99,64 +100,65 @@ const api = {
 export const useAuth = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
     user: null,
-    isLoading: false,
+    isCheckingAuth: false,
+    isSubmitting: false,
     error: null,
 
     login: async (username: string, password: string) => {
-      set({ isLoading: true, error: null });
+      set({ isSubmitting: true, error: null });
       try {
         const { user } = await api.login(username, password);
-        set({ user, isLoading: false });
+        set({ user, isSubmitting: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Login failed';
-        set({ error: message, isLoading: false });
+        set({ error: message, isSubmitting: false });
         throw error;
       }
     },
 
     register: async (username: string, password: string) => {
-      set({ isLoading: true, error: null });
+      set({ isSubmitting: true, error: null });
       try {
         const { user } = await api.register(username, password);
-        set({ user, isLoading: false });
+        set({ user, isSubmitting: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Registration failed';
-        set({ error: message, isLoading: false });
+        set({ error: message, isSubmitting: false });
         throw error;
       }
     },
 
     loginAsGuest: async () => {
-      set({ isLoading: true, error: null });
+      set({ isSubmitting: true, error: null });
       try {
         const { user } = await api.guest();
-        set({ user, isLoading: false });
+        set({ user, isSubmitting: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Guest login failed';
-        set({ error: message, isLoading: false });
+        set({ error: message, isSubmitting: false });
         throw error;
       }
     },
 
     logout: async () => {
-      set({ isLoading: true, error: null });
+      set({ isSubmitting: true, error: null });
       try {
         await api.logout();
-        set({ user: null, isLoading: false });
+        set({ user: null, isSubmitting: false });
       } catch (error) {
         console.error('Logout error:', error);
         // Even if logout fails on server, clear local state
-        set({ user: null, isLoading: false });
+        set({ user: null, isSubmitting: false });
       }
     },
 
     checkAuth: async () => {
-      set({ isLoading: true, error: null });
+      set({ isCheckingAuth: true, error: null });
       try {
         const { user } = await api.me();
-        set({ user, isLoading: false });
+        set({ user, isCheckingAuth: false });
       } catch (error) {
-        set({ user: null, isLoading: false });
+        set({ user: null, isCheckingAuth: false });
       }
     },
 

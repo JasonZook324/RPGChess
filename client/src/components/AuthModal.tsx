@@ -12,11 +12,18 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ onClose }: AuthModalProps) {
-  const { login, register, loginAsGuest, isLoading, error, clearError } = useAuth();
+  const { login, register, loginAsGuest, isSubmitting, error, clearError } = useAuth();
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [registerForm, setRegisterForm] = useState({ username: "", password: "", confirmPassword: "" });
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+
+  // Clear errors when switching tabs
+  const handleTabChange = (tab: 'login' | 'register') => {
+    setActiveTab(tab);
+    clearError();
+    setRegisterError(null);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +86,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             <div className="grid w-full grid-cols-2 bg-gray-800 rounded-lg p-1">
               <button
                 type="button"
-                onClick={() => setActiveTab('login')}
+                onClick={() => handleTabChange('login')}
                 className={`rounded-md px-3 py-1 text-sm font-medium transition-all ${
                   activeTab === 'login'
                     ? 'bg-gray-700 text-white shadow'
@@ -90,7 +97,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab('register')}
+                onClick={() => handleTabChange('register')}
                 className={`rounded-md px-3 py-1 text-sm font-medium transition-all ${
                   activeTab === 'register'
                     ? 'bg-gray-700 text-white shadow'
@@ -109,11 +116,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <Input
                     id="login-username"
                     type="text"
+                    autoComplete="username"
                     value={loginForm.username}
                     onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
                     placeholder="Enter your username"
                     required
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                   />
                 </div>
@@ -122,11 +130,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <Input
                     id="login-password"
                     type="password"
+                    autoComplete="current-password"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                     placeholder="Enter your password"
                     required
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                   />
                 </div>
@@ -138,9 +147,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <Button 
                   type="submit" 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Logging in...
@@ -164,11 +173,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <Input
                     id="register-username"
                     type="text"
+                    autoComplete="username"
                     value={registerForm.username}
                     onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
                     placeholder="Choose a username"
                     required
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                   />
                 </div>
@@ -177,11 +187,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <Input
                     id="register-password"
                     type="password"
+                    autoComplete="new-password"
                     value={registerForm.password}
                     onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                     placeholder="Create a password"
                     required
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                   />
                 </div>
@@ -190,11 +201,12 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <Input
                     id="register-confirm-password"
                     type="password"
+                    autoComplete="new-password"
                     value={registerForm.confirmPassword}
                     onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
                     placeholder="Confirm your password"
                     required
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                   />
                 </div>
@@ -208,9 +220,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <Button 
                   type="submit" 
                   className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating account...
@@ -242,9 +254,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             onClick={handleGuestLogin}
             variant="outline" 
             className="w-full border-gray-600 bg-gray-800 text-white hover:bg-gray-700" 
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating guest...
