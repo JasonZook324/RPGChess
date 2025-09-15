@@ -5,6 +5,7 @@ import { useAudio } from "./lib/stores/useAudio";
 import "@fontsource/inter";
 import ChessGame from "./components/ChessGame";
 import GameModeSelector from "./components/GameModeSelector";
+import PromotionModal from "./components/PromotionModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 
 // Define control keys for the game
@@ -71,6 +72,7 @@ function App() {
           )}
         </KeyboardControls>
       )}
+      <PromotionModal />
     </div>
   );
 }
