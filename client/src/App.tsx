@@ -33,33 +33,19 @@ function App() {
           {!gameMode && <GameModeSelector />}
           
           {gameMode && (
-            <div style={{ 
-              width: '100%', 
-              height: '100%', 
-              padding: '20px',
-              boxSizing: 'border-box'
-            }}>
-              <div style={{
-                width: '100%',
-                height: '100%',
-                border: '3px solid #666',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                backgroundColor: '#1a1a1a'
-              }}>
-                <Canvas
-                  shadows
-                  camera={{
-                    position: [0, 12, 8],
-                    fov: 45,
-                    near: 0.1,
-                    far: 1000
-                  }}
-                  gl={{
-                    antialias: true,
-                    powerPreference: "default"
-                  }}
-                >
+            <Canvas
+              shadows
+              camera={{
+                position: [0, 12, 8],
+                fov: 45,
+                near: 0.1,
+                far: 1000
+              }}
+              gl={{
+                antialias: true,
+                powerPreference: "default"
+              }}
+            >
                   <color attach="background" args={["#1a1a1a"]} />
                   
                   {/* Lighting */}
@@ -82,8 +68,6 @@ function App() {
                   <ChessGame />
                 </Suspense>
               </Canvas>
-              </div>
-            </div>
           )}
         </KeyboardControls>
       )}
