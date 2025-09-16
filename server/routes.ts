@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     socket.on('make_move', async (data) => {
       try {
         const { roomId, move, gameState } = makeMoveSchema.parse(data);
-        
+
         const player = playerSockets.get(socket.id);
         if (!player) {
           socket.emit('error', { message: 'Not authenticated' });
@@ -497,14 +497,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Verify player is in this room
         const isWhite = room.players.white?.socketId === socket.id;
         const isBlack = room.players.black?.socketId === socket.id;
-        
+
         if (!isWhite && !isBlack) {
           socket.emit('error', { message: 'Not a player in this room' });
           return;
         }
 
         const playerColor = isWhite ? 'white' : 'black';
-        
+
         // Validate turn order
         if (room.currentTurn !== playerColor) {
           socket.emit('error', { message: 'Not your turn' });
@@ -536,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('Database error saving move:', error);
           }
         }
-
+          console.log(`Move ${move.moveNumber} made in room ${roomId} by ${player.username} (${playerColor})`);
         // Broadcast move to other player
         socket.to(roomId).emit('opponent_move', {
           move,
@@ -545,7 +545,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           moveNumber: move.moveNumber
         });
 
-        console.log(`Move ${move.moveNumber} made in room ${roomId} by ${player.username} (${playerColor})`);
+        // Optionally, send confirmation to the mover
+        socket.emit('move_accepted', {
+          move,
+          gameState,
+          player: playerColor,
+          moveNumber: move.moveNumber
+        });
+
+        
       } catch (error) {
         console.error('Make move error:', error);
         socket.emit('error', { message: 'Invalid move data' });

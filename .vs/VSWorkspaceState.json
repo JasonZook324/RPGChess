@@ -3,7 +3,10 @@
     "",
     "\\client",
     "\\client\\src",
-    "\\client\\src\\components"
+    "\\client\\src\\components",
+    "\\server",
+    "\\shared"
   ],
+  "SelectedNode": "\\server\\routes.ts",
   "PreviewInSolutionExplorer": false
 }

@@ -48,6 +48,7 @@ interface MultiplayerState {
   onGameStart: (callback: (data: { players: { white: Player; black: Player } }) => void) => void;
   onGameEnd: (callback: (data: { winner: string }) => void) => void;
   onPlayerDisconnected: (callback: (data: { player: string }) => void) => void;
+  onMoveAccepted: (callback: (data: any) => void) => void; // Add this line
 }
 
 export const useMultiplayer = create<MultiplayerState>()(
@@ -304,15 +305,19 @@ export const useMultiplayer = create<MultiplayerState>()(
     joinRoom: (roomId: string) => {
       const { socket } = get();
       if (socket && socket.connected) {
-        socket.emit('join_room', { roomId });
+        console.log("Joining room:", roomId);
+          socket.emit('join_room', { roomId });
+          set({ roomId }); 
         set({ error: null });
       } else {
         set({ error: 'Not connected to server' });
       }
     },
 
-    makeMove: (move: any, gameState: any) => {
-      const { socket, roomId } = get();
+      makeMove: (move: any, gameState: any) => {
+          
+          const { socket, roomId } = get();
+          console.log(`Emitting opponent_move to room${roomId}. Sender: ${socket?.id}`);
       if (socket && socket.connected && roomId) {
         socket.emit('make_move', { roomId, move, gameState });
       } else {
@@ -355,6 +360,13 @@ export const useMultiplayer = create<MultiplayerState>()(
       const { socket } = get();
       if (socket) {
         socket.on('player_disconnected', callback);
+      }
+    },
+
+    onMoveAccepted: (callback) => {
+      const { socket } = get();
+      if (socket) {
+        socket.on('move_accepted', callback);
       }
     }
   }))
