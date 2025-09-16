@@ -4,6 +4,8 @@ import { getPieceStats, getEffectiveStats } from "./pieceData";
 export interface BattleResult {
   attacker: ChessPiece;
   defender: ChessPiece;
+  originalAttacker: ChessPiece;
+  originalDefender: ChessPiece;
   attackerRoll: number;
   defenderRoll: number;
   damage: number;
@@ -11,6 +13,10 @@ export interface BattleResult {
 }
 
 export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): BattleResult {
+  // Store original pieces for display purposes
+  const originalAttacker = { ...attacker };
+  const originalDefender = { ...defender };
+  
   const attackerStats = getEffectiveStats(attacker);
   const defenderStats = getEffectiveStats(defender);
   
@@ -39,18 +45,24 @@ export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): Battl
     result = 'attacker_wins';
     finalDefenderHealth = 0;
   } else {
-    // Defender survives
-    // Check if defender can deal devastating counter-damage (very rare)
-    const counterDamage = Math.max(0, defenderRoll - attackerRoll - 5);
+    // Defender survives - check for limited counter-damage
+    // Counter-damage is much more limited and only based on stat difference, not raw dice
+    const statDifference = defenderStats.attack - attackerStats.defense;
+    const rollAdvantage = defenderRoll - attackerRoll;
     
-    if (counterDamage >= attacker.health) {
-      // Rare case: defender's counter-attack destroys attacker
-      result = 'defender_wins';
-      finalAttackerHealth = 0;
-    } else if (counterDamage > 0) {
-      // Both survive, but attacker takes some counter-damage
-      result = 'both_survive';
-      finalAttackerHealth = Math.max(1, attacker.health - counterDamage);
+    // Counter-damage only occurs if defender has significant stat advantage AND good roll
+    if (statDifference > 2 && rollAdvantage > 10) {
+      const counterDamage = Math.max(1, Math.min(3, statDifference)); // Max 3 counter-damage
+      
+      if (counterDamage >= attacker.health) {
+        // Rare case: defender's counter-attack destroys attacker
+        result = 'defender_wins';
+        finalAttackerHealth = 0;
+      } else {
+        // Both survive, attacker takes minimal counter-damage
+        result = 'both_survive';
+        finalAttackerHealth = Math.max(1, attacker.health - counterDamage);
+      }
     } else {
       // Both survive with no counter-damage
       result = 'both_survive';
@@ -64,6 +76,8 @@ export function resolveBattle(attacker: ChessPiece, defender: ChessPiece): Battl
   return {
     attacker: updatedAttacker,
     defender: updatedDefender,
+    originalAttacker,
+    originalDefender,
     attackerRoll,
     defenderRoll,
     damage,

@@ -5,6 +5,7 @@ import { makeAIMove } from "../chess/chessAI";
 import { resolveBattle as battleResolve, BattleResult } from "../chess/battleSystem";
 import { getPieceStats, xpToNext, calculateXPAward, getMaxHealth, calculateHealAmount } from "../chess/pieceData";
 import { v4 as uuidv4 } from 'uuid';
+import { useMultiplayer } from "./useMultiplayer"; // already imported
 
 export interface ChessPiece {
   id: string;
@@ -30,6 +31,8 @@ export interface Position {
 export interface BattleState {
   attacker: ChessPiece;
   defender: ChessPiece;
+  originalAttacker: ChessPiece;
+  originalDefender: ChessPiece;
   attackerRoll: number;
   defenderRoll: number;
   damage: number;
@@ -158,165 +161,198 @@ const createInitialBoard = (): (ChessPiece | null)[][] => {
 };
 
 export const useChessGame = create<ChessGameState>()(
-  subscribeWithSelector((set, get) => ({
-    // Initial state
-    board: createInitialBoard(),
-    currentPlayer: 'white',
-    gamePhase: 'ready',
-    gameMode: null,
-    aiDifficulty: 'medium',
-    winner: null,
-    selectedSquare: null,
-    validMoves: [],
-    battleState: null,
-    moveHistory: [],
-    aiThinkingTime: 0,
-    
-    // Experience system initial state
-    levelUpQueue: [],
-    activeLevelUpPieceId: null,
-    
-    // Heal system initial state
-    isHealMode: false,
-    selectedPieceForHeal: null,
-    
-    // Promotion initial state
-    promotionPosition: null,
-    promotingPiece: null,
-    
-    setGameMode: (mode) => set({ 
-      gameMode: mode, 
-      gamePhase: mode ? 'playing' : 'ready' 
-    }),
-    
-    setAIDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
-    
-    handleSquareClick: (row, col) => {
-      const state = get();
-      if (state.gamePhase !== 'playing') return;
-      
-      const { board, selectedSquare, currentPlayer, isHealMode } = state;
-      const clickedPiece = board[row][col];
-      
-      // If no piece is selected
-      if (!selectedSquare) {
-        if (clickedPiece && clickedPiece.color === currentPlayer) {
-          const validMoves = getValidMoves(board, { row, col }, isHealMode);
-          set({ 
-            selectedSquare: { row, col }, 
-            validMoves 
-          });
-        }
-        return;
-      }
-      
-      // If clicking the same square, deselect
-      if (selectedSquare.row === row && selectedSquare.col === col) {
-        set({ selectedSquare: null, validMoves: [] });
-        return;
-      }
-      
-      // Get selected piece for heal check
-      const selectedPiece = selectedSquare ? board[selectedSquare.row][selectedSquare.col] : null;
-      
-      // Special case: heal action in heal mode
-      if (isHealMode && selectedPiece && selectedPiece.type === 'bishop' && clickedPiece && clickedPiece.color === currentPlayer) {
-        // Check if this is a valid heal target
-        const isValidHealTarget = state.validMoves.some(move => move.row === row && move.col === col);
-        if (isValidHealTarget) {
-          get().performHeal(selectedSquare, { row, col });
-          return;
-        }
-      }
-      
-      // If clicking another piece of the same color, select it
-      if (clickedPiece && clickedPiece.color === currentPlayer) {
-        const validMoves = getValidMoves(board, { row, col }, isHealMode);
-        set({ 
-          selectedSquare: { row, col }, 
-          validMoves 
-        });
-        return;
-      }
-      
-      // Check if it's a valid move
-      const isValidMove = state.validMoves.some(move => move.row === row && move.col === col);
-      if (!isValidMove) return;
-      
-      if (!selectedPiece) return;
-      
-      // If there's a piece to capture, start battle
-      if (clickedPiece) {
-        const battleResult = battleResolve(selectedPiece, clickedPiece);
-        const battleStateWithPositions: BattleState = {
-          ...battleResult,
-          attackerPosition: { row: selectedSquare.row, col: selectedSquare.col },
-          defenderPosition: { row, col }
-        };
-        set({ 
-          battleState: battleStateWithPositions,
-          gamePhase: 'battle'
-        });
-      } else {
-        // Regular move
-        const newBoard = board.map(r => [...r]);
-        newBoard[row][col] = selectedPiece;
-        newBoard[selectedSquare.row][selectedSquare.col] = null;
-        
-        // Mark piece as moved
-        if (newBoard[row][col]) {
-          newBoard[row][col]!.hasMoved = true;
-        }
-        
-        // Check if pawn reaches promotion rank
-        if (selectedPiece.type === 'pawn') {
-          if ((selectedPiece.color === 'white' && row === 0) ||
-              (selectedPiece.color === 'black' && row === 7)) {
-            // Store promotion info and enter promotion phase
-            set({
-              board: newBoard, // Apply the move to show pawn on promotion square
-              promotionPosition: { row, col },
-              promotingPiece: selectedPiece,
-              gamePhase: 'promotion',
-              selectedSquare: null,
-              validMoves: []
-            });
-            
-            // Schedule AI promotion if in PvC mode and it's AI's piece
-            const currentState = get();
-            if (currentState.gameMode === 'pvc' && selectedPiece.color === 'black') {
-              setTimeout(() => get().promotePawn('queen'), 500);
+    subscribeWithSelector((set, get) => ({
+        // Initial state
+        board: createInitialBoard(),
+        currentPlayer: 'white',
+        gamePhase: 'ready',
+        gameMode: null,
+        aiDifficulty: 'medium',
+        winner: null,
+        selectedSquare: null,
+        validMoves: [],
+        battleState: null,
+        moveHistory: [],
+        aiThinkingTime: 0,
+
+        // Experience system initial state
+        levelUpQueue: [],
+        activeLevelUpPieceId: null,
+
+        // Heal system initial state
+        isHealMode: false,
+        selectedPieceForHeal: null,
+
+        // Promotion initial state
+        promotionPosition: null,
+        promotingPiece: null,
+
+        setGameMode: (mode) => set({
+            gameMode: mode,
+            gamePhase: mode ? 'playing' : 'ready'
+        }),
+
+        setAIDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
+
+        handleSquareClick: (row, col) => {
+            const state = get();
+            if (state.gamePhase !== 'playing') return;
+
+            const { board, selectedSquare, currentPlayer, isHealMode } = state;
+            const clickedPiece = board[row][col];
+
+            // If no piece is selected
+            if (!selectedSquare) {
+                if (clickedPiece && clickedPiece.color === currentPlayer) {
+                    const validMoves = getValidMoves(board, { row, col }, isHealMode);
+                    set({
+                        selectedSquare: { row, col },
+                        validMoves
+                    });
+                }
+                return;
             }
-            
-            return; // Don't complete the move yet
-          }
-        }
-        
-        const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
-        
-        // Check for game end
-        const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
-        let winner = null;
-        let phase: GamePhase = 'playing';
-        
-        if (isCheckmate(newBoard, nextPlayer)) {
-          winner = currentPlayer;
-          phase = 'ended';
-        } else if (isStalemate(newBoard, nextPlayer)) {
-          phase = 'ended';
-        }
-        
-        set({ 
-          board: newBoard,
-          currentPlayer: nextPlayer,
-          selectedSquare: null,
-          validMoves: [],
-          moveHistory: [...state.moveHistory, moveNotation],
-          winner,
-          gamePhase: phase
-        });
-      }
-    },
+
+            // If clicking the same square, deselect
+            if (selectedSquare.row === row && selectedSquare.col === col) {
+                set({ selectedSquare: null, validMoves: [] });
+                return;
+            }
+
+            // Get selected piece for heal check
+            const selectedPiece = selectedSquare ? board[selectedSquare.row][selectedSquare.col] : null;
+
+            // Special case: heal action in heal mode
+            if (isHealMode && selectedPiece && selectedPiece.type === 'bishop' && clickedPiece && clickedPiece.color === currentPlayer) {
+                // Check if this is a valid heal target
+                const isValidHealTarget = state.validMoves.some(move => move.row === row && move.col === col);
+                if (isValidHealTarget) {
+                    get().performHeal(selectedSquare, { row, col });
+                    return;
+                }
+            }
+
+            // If clicking another piece of the same color, select it
+            if (clickedPiece && clickedPiece.color === currentPlayer) {
+                const validMoves = getValidMoves(board, { row, col }, isHealMode);
+                set({
+                    selectedSquare: { row, col },
+                    validMoves
+                });
+                return;
+            }
+
+            // Check if it's a valid move
+            const isValidMove = state.validMoves.some(move => move.row === row && move.col === col);
+            if (!isValidMove) return;
+
+            if (!selectedPiece) return;
+
+            // If there's a piece to capture, start battle
+            if (clickedPiece) {
+                const battleResult = battleResolve(selectedPiece, clickedPiece);
+                const battleStateWithPositions: BattleState = {
+                    ...battleResult,
+                    attackerPosition: { row: selectedSquare.row, col: selectedSquare.col },
+                    defenderPosition: { row, col }
+                };
+                set({
+                    battleState: battleStateWithPositions,
+                    gamePhase: 'battle'
+                });
+            } else {
+                // Regular move
+                const newBoard = board.map(r => [...r]);
+                newBoard[row][col] = selectedPiece;
+                newBoard[selectedSquare.row][selectedSquare.col] = null;
+
+                // Mark piece as moved
+                if (newBoard[row][col]) {
+                    newBoard[row][col]!.hasMoved = true;
+                }
+
+                // Check if pawn reaches promotion rank
+                if (selectedPiece.type === 'pawn') {
+                    if ((selectedPiece.color === 'white' && row === 0) ||
+                        (selectedPiece.color === 'black' && row === 7)) {
+                        // Store promotion info and enter promotion phase
+                        set({
+                            board: newBoard, // Apply the move to show pawn on promotion square
+                            promotionPosition: { row, col },
+                            promotingPiece: selectedPiece,
+                            gamePhase: 'promotion',
+                            selectedSquare: null,
+                            validMoves: []
+                        });
+
+                        // Schedule AI promotion if in PvC mode and it's AI's piece
+                        const currentState = get();
+                        if (currentState.gameMode === 'pvc' && selectedPiece.color === 'black') {
+                            setTimeout(() => get().promotePawn('queen'), 500);
+                        }
+
+                        return; // Don't complete the move yet
+                    }
+                }
+
+                const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
+
+                // Check for game end
+                const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
+                let winner = null;
+                let phase: GamePhase = 'playing';
+
+                if (isCheckmate(newBoard, nextPlayer)) {
+                    winner = currentPlayer;
+                    phase = 'ended';
+                } else if (isStalemate(newBoard, nextPlayer)) {
+                    phase = 'ended';
+                }
+
+                set({
+                    board: newBoard,
+                    currentPlayer: nextPlayer,
+                    selectedSquare: null,
+                    validMoves: [],
+                    moveHistory: [...state.moveHistory, moveNotation],
+                    winner,
+                    gamePhase: phase
+                });
+
+                const multiplayerState = useMultiplayer.getState();
+                if (
+                    state.gameMode === 'pvp' &&
+                    multiplayerState.isInMultiplayerMode &&
+                    multiplayerState.playerRole // 'white' or 'black'
+                ) {
+                    // Only allow selecting/moving pieces that match the player's role
+                    //  Console.WriteLine("Multiplayer move attempted");
+                    //if (
+                    //  (!selectedSquare && clickedPiece && clickedPiece.color !== multiplayerState.playerRole) ||
+                    //  (selectedSquare && board[selectedSquare.row][selectedSquare.col]?.color !== multiplayerState.playerRole)
+                    //) {
+                    //  // Prevent selection or movement of opponent's pieces
+                    //  return;
+                    //}
+                }
+
+                if (state.gameMode === 'pvp' && useMultiplayer.getState().isInMultiplayerMode) {
+                  const multiplayerState = useMultiplayer.getState();
+                  const moveNumber =
+                    multiplayerState.gameRoom?.moveCount !== undefined
+                      ? multiplayerState.gameRoom.moveCount + 1
+                      : 1;
+                  const move = {
+                    from: positionToString(selectedSquare),
+                    to: positionToString({ row, col }),
+                    piece: selectedPiece.type,
+                    player: multiplayerState.playerRole,
+                    moveNumber
+                  };
+                  useMultiplayer.getState().makeMove(move, newBoard);
+                }
+              }
+            },
     
     resolveBattle: () => {
       const state = get();
@@ -644,3 +680,7 @@ export const useChessGame = create<ChessGameState>()(
     }
   }))
 );
+
+function positionToString(pos: { row: number, col: number }): string {
+  return String.fromCharCode(97 + pos.col) + (8 - pos.row);
+}

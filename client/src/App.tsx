@@ -6,7 +6,9 @@ import "@fontsource/inter";
 import ChessGame from "./components/ChessGame";
 import GameModeSelector from "./components/GameModeSelector";
 import PromotionModal from "./components/PromotionModal";
+import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
+import { useAuth } from "./lib/stores/useAuth";
 
 // Define control keys for the game
 const controls = [
@@ -20,12 +22,32 @@ const controls = [
 
 function App() {
   const { gameMode } = useChessGame();
+  const { user, isCheckingAuth, checkAuth } = useAuth();
   const [showCanvas, setShowCanvas] = useState(false);
+
+  // Check authentication when app loads
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // Show the canvas once everything is loaded
   useEffect(() => {
     setShowCanvas(true);
   }, []);
+
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show authentication modal if user is not logged in
+  if (!user) {
+    return <AuthModal />;
+  }
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', backgroundColor: '#0a0a0a' }}>

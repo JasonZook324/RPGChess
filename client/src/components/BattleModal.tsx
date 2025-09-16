@@ -26,7 +26,7 @@ export default function BattleModal() {
     return null;
   }
 
-  const { attacker, defender, result, damage, attackerRoll, defenderRoll } = battleState;
+  const { attacker, defender, originalAttacker, originalDefender, result, damage, attackerRoll, defenderRoll } = battleState;
 
   // Calculate XP gain for winners
   const getXPGain = () => {
@@ -59,24 +59,24 @@ export default function BattleModal() {
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center border border-blue-500 p-3 rounded">
               <div className="font-bold text-blue-400">Attacker</div>
-              <div className="text-lg">{attacker.type.toUpperCase()}</div>
-              <div className="text-sm">({attacker.color})</div>
+              <div className="text-lg">{originalAttacker.type.toUpperCase()}</div>
+              <div className="text-sm">({originalAttacker.color})</div>
               <Progress 
-                value={(attacker.health / 100) * 100} 
+                value={(originalAttacker.health / 100) * 100} 
                 className="mt-2"
               />
-              <div className="text-xs mt-1">HP: {attacker.health}</div>
+              <div className="text-xs mt-1">HP: {originalAttacker.health}</div>
             </div>
             
             <div className="text-center border border-red-500 p-3 rounded">
               <div className="font-bold text-red-400">Defender</div>
-              <div className="text-lg">{defender.type.toUpperCase()}</div>
-              <div className="text-sm">({defender.color})</div>
+              <div className="text-lg">{originalDefender.type.toUpperCase()}</div>
+              <div className="text-sm">({originalDefender.color})</div>
               <Progress 
-                value={(defender.health / 100) * 100} 
+                value={(originalDefender.health / 100) * 100} 
                 className="mt-2"
               />
-              <div className="text-xs mt-1">HP: {defender.health}</div>
+              <div className="text-xs mt-1">HP: {originalDefender.health}</div>
             </div>
           </div>
 
