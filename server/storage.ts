@@ -7,8 +7,16 @@ import {
   type InsertUser, type InsertGame, type InsertGameMove, type InsertUserSession, type InsertUserStats
 } from "@shared/schema";
 
-// Database client setup
-const sql = neon(process.env.DATABASE_URL!);
+// Database client setup - clean and parse the DATABASE_URL
+let databaseUrl = process.env.DATABASE_URL!;
+// Remove the prefix if it exists
+if (databaseUrl.startsWith('DATABASE_URL=')) {
+  databaseUrl = databaseUrl.substring('DATABASE_URL='.length);
+}
+// Decode HTML entities
+databaseUrl = databaseUrl.replace(/&amp;/g, '&');
+
+const sql = neon(databaseUrl);
 const db = drizzle(sql);
 
 export interface IStorage {
