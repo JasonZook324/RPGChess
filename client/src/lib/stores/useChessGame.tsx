@@ -502,11 +502,11 @@ export const useChessGame = create<ChessGameState>()(
       
       // If a king was defeated in battle, end the game immediately
       if (battleState.result === 'attacker_wins' && battleState.defender.type === 'king') {
-        winner = battleState.attacker.color === 'white' ? 'white' : 'black';
+        winner = battleState.attacker.color as 'white' | 'black';
         phase = 'ended';
         console.log(`Game over! ${winner} wins by defeating the ${battleState.defender.color} king in battle!`);
       } else if (battleState.result === 'defender_wins' && battleState.attacker.type === 'king') {
-        winner = battleState.defender.color === 'white' ? 'white' : 'black';
+        winner = battleState.defender.color as 'white' | 'black';
         phase = 'ended';
         console.log(`Game over! ${winner} wins by defeating the ${battleState.attacker.color} king in battle!`);
       } else {
