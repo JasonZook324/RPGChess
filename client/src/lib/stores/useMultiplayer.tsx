@@ -165,12 +165,56 @@ export const useMultiplayer = create<MultiplayerState>()(
           set({ playerRole: nextPlayer });
         }
 
+        // Check if the move included a battle result that defeated a king
+        let gamePhase: 'playing' | 'ended' = 'playing';
+        let winner = null;
+        
+        if (data.move.battle) {
+          const battleResult = data.move.battle;
+          if (battleResult.result === 'attacker_wins' && battleResult.defender.type === 'king') {
+            winner = battleResult.attacker.color;
+            gamePhase = 'ended';
+            console.log(`Game over! ${winner} wins by defeating the ${battleResult.defender.color} king in battle!`);
+          } else if (battleResult.result === 'defender_wins' && battleResult.attacker.type === 'king') {
+            winner = battleResult.defender.color;
+            gamePhase = 'ended';
+            console.log(`Game over! ${winner} wins by defeating the ${battleResult.attacker.color} king in battle!`);
+          }
+        } else {
+          // Fallback: scan the board for missing kings if battle data is unavailable
+          const board = data.gameState;
+          let whiteKingExists = false;
+          let blackKingExists = false;
+          
+          for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+              const piece = board[row][col];
+              if (piece && piece.type === 'king') {
+                if (piece.color === 'white') whiteKingExists = true;
+                if (piece.color === 'black') blackKingExists = true;
+              }
+            }
+          }
+          
+          if (!whiteKingExists) {
+            winner = 'black';
+            gamePhase = 'ended';
+            console.log(`Game over! Black wins - White king was defeated!`);
+          } else if (!blackKingExists) {
+            winner = 'white';
+            gamePhase = 'ended';
+            console.log(`Game over! White wins - Black king was defeated!`);
+          }
+        }
+
         useChessGame.setState({
           board: data.gameState,
           currentPlayer: nextPlayer, // <-- Ensures you can move after opponent's attack
           selectedSquare: null,
           validMoves: [],
-          battleState: null
+          battleState: null,
+          gamePhase,
+          winner
         });
 
         set((state) => ({
