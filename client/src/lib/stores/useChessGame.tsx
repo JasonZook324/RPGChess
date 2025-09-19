@@ -204,6 +204,15 @@ export const useChessGame = create<ChessGameState>()(
             // If no piece is selected
             if (!selectedSquare) {
                 if (clickedPiece && clickedPiece.color === currentPlayer) {
+                    // In multiplayer, also validate against player role
+                    const multiplayerState = useMultiplayer.getState();
+                    if (state.gameMode === 'pvp' && multiplayerState.isInMultiplayerMode) {
+                        if (clickedPiece.color !== multiplayerState.playerRole) {
+                            console.log("Prevented selection of opponent's piece:", clickedPiece.color, "vs role:", multiplayerState.playerRole);
+                            return; // Prevent selection of opponent's pieces
+                        }
+                    }
+                    
                     const validMoves = getValidMoves(board, { row, col }, isHealMode);
                     set({
                         selectedSquare: { row, col },
@@ -234,6 +243,15 @@ export const useChessGame = create<ChessGameState>()(
 
             // If clicking another piece of the same color, select it
             if (clickedPiece && clickedPiece.color === currentPlayer) {
+                // In multiplayer, also validate against player role
+                const multiplayerState = useMultiplayer.getState();
+                if (state.gameMode === 'pvp' && multiplayerState.isInMultiplayerMode) {
+                    if (clickedPiece.color !== multiplayerState.playerRole) {
+                        console.log("Prevented selection of opponent's piece:", clickedPiece.color, "vs role:", multiplayerState.playerRole);
+                        return; // Prevent selection of opponent's pieces
+                    }
+                }
+                
                 const validMoves = getValidMoves(board, { row, col }, isHealMode);
                 set({
                     selectedSquare: { row, col },
@@ -355,13 +373,14 @@ export const useChessGame = create<ChessGameState>()(
             },
     
     resolveBattle: () => {
-      const state = get();
+        const state = get();
+        console.log("Resolving battle:", state.battleState);
       if (!state.battleState) return;
       
       const { battleState, board, currentPlayer } = state;
       const { attackerPosition, defenderPosition } = battleState;
       
-      const newBoard = board.map(r => [...r]);
+      let newBoard = board.map(r => [...r]);
       
       if (battleState.result === 'attacker_wins') {
         // Attacker wins, move to defender's position
@@ -370,8 +389,8 @@ export const useChessGame = create<ChessGameState>()(
         // Mark piece as moved
         newBoard[defenderPosition.row][defenderPosition.col]!.hasMoved = true;
         
-        // Check for pawn promotion after capturing
-        if (battleState.attacker.type === 'pawn') {
+        // Check for pawn promotion after capturing (but not if a king was defeated)
+        if (battleState.attacker.type === 'pawn' && battleState.defender.type !== 'king') {
           if ((battleState.attacker.color === 'white' && defenderPosition.row === 0) ||
               (battleState.attacker.color === 'black' && defenderPosition.row === 7)) {
             // Award XP before entering promotion phase
@@ -411,31 +430,93 @@ export const useChessGame = create<ChessGameState>()(
         newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       }
       
-      // Award XP for victories
+      // Award XP for victories and apply immediately to newBoard
       if (battleState.result === 'attacker_wins') {
         const xpAward = calculateXPAward(battleState.attacker.level, battleState.defender.level, battleState.defender.type);
         console.log(`Battle XP: ${battleState.attacker.type} (${battleState.attacker.id}) defeats ${battleState.defender.type} and gains ${xpAward} XP`);
-        // Use setTimeout to ensure XP is awarded after board state is updated
-        setTimeout(() => get().awardXP(battleState.attacker.id, xpAward), 0);
+        // Apply XP immediately to the newBoard so it's included in multiplayer sync
+        newBoard = newBoard.map(row => row.map(piece => {
+          if (!piece || piece.id !== battleState.attacker.id) return piece;
+          
+          let newPiece = { ...piece, xp: piece.xp + xpAward };
+          let leveledUp = false;
+          
+          // Check for level ups
+          while (newPiece.xp >= xpToNext(newPiece.level)) {
+            newPiece.xp -= xpToNext(newPiece.level);
+            newPiece.level++;
+            newPiece.unspentPoints++;
+            leveledUp = true;
+          }
+          
+          // Queue level up modal if needed
+          if (leveledUp) {
+            setTimeout(() => {
+              const currentState = get();
+              if (!currentState.levelUpQueue.includes(battleState.attacker.id)) {
+                set({ levelUpQueue: [...currentState.levelUpQueue, battleState.attacker.id] });
+              }
+            }, 0);
+          }
+          
+          return newPiece;
+        }));
       } else if (battleState.result === 'defender_wins') {
         const xpAward = calculateXPAward(battleState.defender.level, battleState.attacker.level, battleState.attacker.type);
         console.log(`Battle XP: ${battleState.defender.type} (${battleState.defender.id}) defeats ${battleState.attacker.type} and gains ${xpAward} XP`);
-        // Use setTimeout to ensure XP is awarded after board state is updated
-        setTimeout(() => get().awardXP(battleState.defender.id, xpAward), 0);
+        // Apply XP immediately to the newBoard so it's included in multiplayer sync
+        newBoard = newBoard.map(row => row.map(piece => {
+          if (!piece || piece.id !== battleState.defender.id) return piece;
+          
+          let newPiece = { ...piece, xp: piece.xp + xpAward };
+          let leveledUp = false;
+          
+          // Check for level ups
+          while (newPiece.xp >= xpToNext(newPiece.level)) {
+            newPiece.xp -= xpToNext(newPiece.level);
+            newPiece.level++;
+            newPiece.unspentPoints++;
+            leveledUp = true;
+          }
+          
+          // Queue level up modal if needed
+          if (leveledUp) {
+            setTimeout(() => {
+              const currentState = get();
+              if (!currentState.levelUpQueue.includes(battleState.defender.id)) {
+                set({ levelUpQueue: [...currentState.levelUpQueue, battleState.defender.id] });
+              }
+            }, 0);
+          }
+          
+          return newPiece;
+        }));
       }
       
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
       
-      // Check for game end
+      // Check for immediate game end if a king was defeated in battle
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
       let winner = null;
       let phase: GamePhase = 'playing';
       
-      if (isCheckmate(newBoard, nextPlayer)) {
-        winner = currentPlayer;
+      // If a king was defeated in battle, end the game immediately
+      if (battleState.result === 'attacker_wins' && battleState.defender.type === 'king') {
+        winner = battleState.attacker.color === 'white' ? 'white' : 'black';
         phase = 'ended';
-      } else if (isStalemate(newBoard, nextPlayer)) {
+        console.log(`Game over! ${winner} wins by defeating the ${battleState.defender.color} king in battle!`);
+      } else if (battleState.result === 'defender_wins' && battleState.attacker.type === 'king') {
+        winner = battleState.defender.color === 'white' ? 'white' : 'black';
         phase = 'ended';
+        console.log(`Game over! ${winner} wins by defeating the ${battleState.attacker.color} king in battle!`);
+      } else {
+        // Standard chess endgame checks if no king was defeated
+        if (isCheckmate(newBoard, nextPlayer)) {
+          winner = currentPlayer;
+          phase = 'ended';
+        } else if (isStalemate(newBoard, nextPlayer)) {
+          phase = 'ended';
+        }
       }
       
       set({ 
@@ -448,6 +529,33 @@ export const useChessGame = create<ChessGameState>()(
         moveHistory: [...state.moveHistory, moveNotation],
         winner
       });
+        // Multiplayer sync: emit move after battle
+        const multiplayerState = useMultiplayer.getState();
+        console.log("state: ", state.gameMode, multiplayerState.isInMultiplayerMode, multiplayerState.playerRole);
+        
+        if (
+            state.gameMode === 'pvp' &&
+            multiplayerState.isInMultiplayerMode &&
+            multiplayerState.playerRole
+        ) {
+            console.log("Emitting multiplayer move after battle");
+            const moveNumber =
+                multiplayerState.gameRoom?.moveCount !== undefined
+                    ? multiplayerState.gameRoom.moveCount + 1
+                    : 1;
+            // Use the battleState that was stored before setting it to null
+            const move = {
+                from: positionToString(battleState.attackerPosition),
+                to: positionToString(battleState.defenderPosition),
+                piece: battleState.attacker.type,
+                player: multiplayerState.playerRole,
+                moveNumber,
+                battle: battleState // Send battle details
+            };
+            console.log("Multiplayer move data:", move.battle);
+            console.log("New board state after battle:", newBoard);
+            useMultiplayer.getState().makeMove(move, newBoard);
+        }
     },
     
     updateAI: (deltaTime) => {
@@ -677,6 +785,28 @@ export const useChessGame = create<ChessGameState>()(
         moveHistory: [...state.moveHistory, moveNotation],
         winner
       });
+
+      // Sync promotion with multiplayer opponent
+      if (state.gameMode === 'pvp' && useMultiplayer.getState().isInMultiplayerMode) {
+        const multiplayerState = useMultiplayer.getState();
+        const moveNumber =
+          multiplayerState.gameRoom?.moveCount !== undefined
+            ? multiplayerState.gameRoom.moveCount + 1
+            : 1;
+        const move = {
+          from: positionToString(promotionPosition),
+          to: positionToString(promotionPosition), // Same position for promotion
+          piece: pieceType, // The promoted piece type
+          player: multiplayerState.playerRole,
+          moveNumber,
+          promotion: {
+            pieceType,
+            position: promotionPosition
+          }
+        };
+        console.log("Emitting pawn promotion move:", move);
+        useMultiplayer.getState().makeMove(move, newBoard);
+      }
     }
   }))
 );

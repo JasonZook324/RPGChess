@@ -4,9 +4,10 @@
     "\\client",
     "\\client\\src",
     "\\client\\src\\components",
+    "\\client\\src\\lib",
+    "\\client\\src\\lib\\chess",
     "\\server",
     "\\shared"
   ],
-  "SelectedNode": "\\server\\routes.ts",
   "PreviewInSolutionExplorer": false
 }
