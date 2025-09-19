@@ -7,6 +7,16 @@ import { getPieceStats, xpToNext, calculateXPAward, getMaxHealth, calculateHealA
 import { v4 as uuidv4 } from 'uuid';
 import { useMultiplayer } from "./useMultiplayer"; // already imported
 
+// Point values for defeated pieces (matches server-side values)
+const PIECE_POINT_VALUES: Record<ChessPiece['type'], number> = {
+  pawn: 1,
+  knight: 3,
+  bishop: 3,
+  rook: 5,
+  queen: 8,
+  king: 15
+};
+
 export interface ChessPiece {
   id: string;
   type: 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
@@ -76,6 +86,17 @@ interface ChessGameState {
   promotionPosition: Position | null;
   promotingPiece: ChessPiece | null;
   
+  // Point tracking state
+  gamePoints: {
+    white: number;
+    black: number;
+  };
+  lastPointAward: {
+    player: 'white' | 'black';
+    points: number;
+    pieceType: string;
+  } | null;
+  
   // Actions
   setGameMode: (mode: GameMode) => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
@@ -96,6 +117,10 @@ interface ChessGameState {
   
   // Promotion actions
   promotePawn: (pieceType: PromotionPieceType) => void;
+  
+  // Point tracking actions
+  awardPoints: (player: 'white' | 'black', points: number, pieceType: string) => void;
+  updateGamePoints: (whitePoints: number, blackPoints: number) => void;
 }
 
 // Initial board setup
@@ -187,9 +212,22 @@ export const useChessGame = create<ChessGameState>()(
         promotionPosition: null,
         promotingPiece: null,
 
+        // Point tracking initial state
+        gamePoints: {
+            white: 0,
+            black: 0
+        },
+        lastPointAward: null,
+
         setGameMode: (mode) => set({
             gameMode: mode,
-            gamePhase: mode ? 'playing' : 'ready'
+            gamePhase: mode ? 'playing' : 'ready',
+            // Reset point tracking when starting a new game mode
+            gamePoints: {
+                white: 0,
+                black: 0
+            },
+            lastPointAward: null
         }),
 
         setAIDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
@@ -389,6 +427,10 @@ export const useChessGame = create<ChessGameState>()(
         // Mark piece as moved
         newBoard[defenderPosition.row][defenderPosition.col]!.hasMoved = true;
         
+        // Award points for defeating the defender
+        const pointsAwarded = PIECE_POINT_VALUES[battleState.defender.type];
+        get().awardPoints(battleState.attacker.color, pointsAwarded, battleState.defender.type);
+        
         // Check for pawn promotion after capturing (but not if a king was defeated)
         if (battleState.attacker.type === 'pawn' && battleState.defender.type !== 'king') {
           if ((battleState.attacker.color === 'white' && defenderPosition.row === 0) ||
@@ -423,6 +465,10 @@ export const useChessGame = create<ChessGameState>()(
         // Defender wins, attacker is destroyed (removed from original position)
         newBoard[attackerPosition.row][attackerPosition.col] = null;
         // Defender stays in place with updated health
+        
+        // Award points for defeating the attacker
+        const pointsAwarded = PIECE_POINT_VALUES[battleState.attacker.type];
+        get().awardPoints(battleState.defender.color, pointsAwarded, battleState.attacker.type);
         newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       } else {
         // Both survive, update health but stay in original positions
@@ -594,12 +640,24 @@ export const useChessGame = create<ChessGameState>()(
       validMoves: [],
       battleState: null,
       moveHistory: [],
-      aiThinkingTime: 0
+      aiThinkingTime: 0,
+      // Reset point tracking for new game
+      gamePoints: {
+        white: 0,
+        black: 0
+      },
+      lastPointAward: null
     }),
     
     backToMenu: () => set({
       gameMode: null,
       gamePhase: 'ready',
+      // Reset point tracking when returning to menu
+      gamePoints: {
+        white: 0,
+        black: 0
+      },
+      lastPointAward: null,
       board: createInitialBoard(),
       currentPlayer: 'white',
       winner: null,
@@ -807,6 +865,32 @@ export const useChessGame = create<ChessGameState>()(
         console.log("Emitting pawn promotion move:", move);
         useMultiplayer.getState().makeMove(move, newBoard);
       }
+    },
+
+    // Point tracking actions
+    awardPoints: (player: 'white' | 'black', points: number, pieceType: string) => {
+      set(state => ({
+        gamePoints: {
+          ...state.gamePoints,
+          [player]: state.gamePoints[player] + points
+        },
+        lastPointAward: {
+          player,
+          points,
+          pieceType
+        }
+      }));
+      console.log(`${player} awarded ${points} points for defeating ${pieceType}. Total: ${get().gamePoints[player] + points}`);
+    },
+
+    updateGamePoints: (whitePoints: number, blackPoints: number) => {
+      set({
+        gamePoints: {
+          white: whitePoints,
+          black: blackPoints
+        }
+      });
+      console.log(`Game points updated: white=${whitePoints}, black=${blackPoints}`);
     }
   }))
 );
