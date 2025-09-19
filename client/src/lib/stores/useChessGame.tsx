@@ -791,6 +791,27 @@ export const useChessGame = create<ChessGameState>()(
         selectedPieceForHeal: null,
         moveHistory: [...state.moveHistory, moveNotation]
       });
+
+      // CRITICAL FIX: Add multiplayer synchronization for healing moves
+      if (state.gameMode === 'pvp' && useMultiplayer.getState().isInMultiplayerMode) {
+        const multiplayerState = useMultiplayer.getState();
+        const moveNumber = multiplayerState.gameRoom?.moveCount !== undefined 
+          ? multiplayerState.gameRoom.moveCount + 1 
+          : 1;
+        const move = {
+          from: positionToString(bishopPosition),
+          to: positionToString(targetPosition),
+          piece: bishop.type,
+          player: multiplayerState.playerRole,
+          moveNumber,
+          heal: {
+            healAmount,
+            targetHealth: newHealth
+          }
+        };
+        console.log('Syncing healing move to opponent:', move);
+        useMultiplayer.getState().makeMove(move, newBoard);
+      }
     },
     
     // Promotion actions
