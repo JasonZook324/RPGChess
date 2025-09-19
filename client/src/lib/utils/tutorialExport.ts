@@ -24,26 +24,19 @@ export class TutorialExporter {
     const opts = { ...this.defaultOptions, ...options };
     
     const pdfOptions = {
-      margin: opts.margin,
+      margin: 0.2,
       filename: opts.filename || 'tutorial-lesson.pdf',
-      image: { type: 'jpeg' as const, quality: opts.quality },
+      image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { 
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#1f2937', // Gray-800 to match tutorial background
-        scrollX: 0,
-        scrollY: 0,
-        height: element.scrollHeight,
-        width: element.scrollWidth,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+        backgroundColor: '#1f2937'
       },
       jsPDF: { 
         unit: 'in', 
-        format: 'a4', 
-        orientation: opts.orientation,
-        compress: true
+        format: 'letter', 
+        orientation: 'portrait' as const
       }
     };
 
