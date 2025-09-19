@@ -18,6 +18,10 @@ export const games = pgTable("games", {
   gameState: jsonb("game_state").notNull(),
   status: varchar("status", { length: 20 }).notNull().default("waiting"), // waiting, active, completed, abandoned
   winner: varchar("winner", { length: 10 }), // white, black, draw
+  whitePoints: integer("white_points").notNull().default(0),
+  blackPoints: integer("black_points").notNull().default(0),
+  completedAt: timestamp("completed_at"),
+  winnerUserId: integer("winner_user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -46,6 +50,8 @@ export const userStats = pgTable("user_stats", {
   gamesWon: integer("games_won").default(0).notNull(),
   gamesLost: integer("games_lost").default(0).notNull(),
   rating: integer("rating").default(1200).notNull(),
+  totalPoints: integer("total_points").default(0).notNull(),
+  level: integer("level").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -82,6 +88,8 @@ export const insertUserStatsSchema = createInsertSchema(userStats).pick({
   gamesWon: true,
   gamesLost: true,
   rating: true,
+  totalPoints: true,
+  level: true,
 });
 
 export type User = typeof users.$inferSelect;
