@@ -380,7 +380,7 @@ export const useChessGame = create<ChessGameState>()(
       const { battleState, board, currentPlayer } = state;
       const { attackerPosition, defenderPosition } = battleState;
       
-      const newBoard = board.map(r => [...r]);
+      let newBoard = board.map(r => [...r]);
       
       if (battleState.result === 'attacker_wins') {
         // Attacker wins, move to defender's position
@@ -430,17 +430,67 @@ export const useChessGame = create<ChessGameState>()(
         newBoard[defenderPosition.row][defenderPosition.col] = battleState.defender;
       }
       
-      // Award XP for victories
+      // Award XP for victories and apply immediately to newBoard
       if (battleState.result === 'attacker_wins') {
         const xpAward = calculateXPAward(battleState.attacker.level, battleState.defender.level, battleState.defender.type);
         console.log(`Battle XP: ${battleState.attacker.type} (${battleState.attacker.id}) defeats ${battleState.defender.type} and gains ${xpAward} XP`);
-        // Use setTimeout to ensure XP is awarded after board state is updated
-        setTimeout(() => get().awardXP(battleState.attacker.id, xpAward), 0);
+        // Apply XP immediately to the newBoard so it's included in multiplayer sync
+        newBoard = newBoard.map(row => row.map(piece => {
+          if (!piece || piece.id !== battleState.attacker.id) return piece;
+          
+          let newPiece = { ...piece, xp: piece.xp + xpAward };
+          let leveledUp = false;
+          
+          // Check for level ups
+          while (newPiece.xp >= xpToNext(newPiece.level)) {
+            newPiece.xp -= xpToNext(newPiece.level);
+            newPiece.level++;
+            newPiece.unspentPoints++;
+            leveledUp = true;
+          }
+          
+          // Queue level up modal if needed
+          if (leveledUp) {
+            setTimeout(() => {
+              const currentState = get();
+              if (!currentState.levelUpQueue.includes(battleState.attacker.id)) {
+                set({ levelUpQueue: [...currentState.levelUpQueue, battleState.attacker.id] });
+              }
+            }, 0);
+          }
+          
+          return newPiece;
+        }));
       } else if (battleState.result === 'defender_wins') {
         const xpAward = calculateXPAward(battleState.defender.level, battleState.attacker.level, battleState.attacker.type);
         console.log(`Battle XP: ${battleState.defender.type} (${battleState.defender.id}) defeats ${battleState.attacker.type} and gains ${xpAward} XP`);
-        // Use setTimeout to ensure XP is awarded after board state is updated
-        setTimeout(() => get().awardXP(battleState.defender.id, xpAward), 0);
+        // Apply XP immediately to the newBoard so it's included in multiplayer sync
+        newBoard = newBoard.map(row => row.map(piece => {
+          if (!piece || piece.id !== battleState.defender.id) return piece;
+          
+          let newPiece = { ...piece, xp: piece.xp + xpAward };
+          let leveledUp = false;
+          
+          // Check for level ups
+          while (newPiece.xp >= xpToNext(newPiece.level)) {
+            newPiece.xp -= xpToNext(newPiece.level);
+            newPiece.level++;
+            newPiece.unspentPoints++;
+            leveledUp = true;
+          }
+          
+          // Queue level up modal if needed
+          if (leveledUp) {
+            setTimeout(() => {
+              const currentState = get();
+              if (!currentState.levelUpQueue.includes(battleState.defender.id)) {
+                set({ levelUpQueue: [...currentState.levelUpQueue, battleState.defender.id] });
+              }
+            }, 0);
+          }
+          
+          return newPiece;
+        }));
       }
       
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
