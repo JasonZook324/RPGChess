@@ -238,6 +238,139 @@ const StrategicPlayLesson = () => (
   </div>
 );
 
+const BishopHealingLesson = () => (
+  <div className="space-y-6">
+    <Card className="bg-gray-800 border-gray-600">
+      <CardHeader>
+        <CardTitle className="text-lg text-white flex items-center">
+          <Heart className="w-5 h-5 mr-2 text-green-400" />
+          Bishop Healing Ability
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-gray-300 space-y-4">
+        <div className="bg-gray-700 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-white">How Bishop Healing Works:</h4>
+          <ol className="list-decimal list-inside space-y-2 text-sm">
+            <li>Select your Bishop piece during your turn</li>
+            <li>Click the "Toggle Heal Mode" button in the piece info panel</li>
+            <li>Valid healing targets will be highlighted on the board</li>
+            <li>Click on a damaged friendly piece to heal them</li>
+            <li>Healing ends your turn (like making a move)</li>
+          </ol>
+        </div>
+
+        <div className="bg-blue-900/30 border border-blue-600 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-blue-300">🎯 Healing Rules:</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li><strong>Range:</strong> Bishop can heal any friendly piece on diagonal lines (like normal Bishop movement)</li>
+            <li><strong>Target Requirements:</strong> Only pieces below maximum health can be healed</li>
+            <li><strong>Line of Sight:</strong> Other pieces block healing just like regular moves</li>
+            <li><strong>Self-Healing:</strong> Bishops cannot heal themselves</li>
+          </ul>
+        </div>
+
+        <div className="bg-green-900/30 border border-green-600 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-green-300">📈 Healing Calculation:</h4>
+          <div className="text-sm space-y-2">
+            <p><strong>Formula:</strong> Base 25% of target's max health + 5% per Bishop level</p>
+            <div className="bg-gray-800 p-3 rounded-lg mt-2">
+              <div className="font-mono text-xs space-y-1">
+                <div>Level 1 Bishop: 25% healing</div>
+                <div>Level 2 Bishop: 30% healing</div>
+                <div>Level 3 Bishop: 35% healing</div>
+                <div>Maximum: 75% healing (high levels)</div>
+              </div>
+            </div>
+            <p><strong>Example:</strong> Level 2 Bishop healing a Knight (45 max health) = 13 HP restored</p>
+          </div>
+        </div>
+
+        <div className="bg-purple-900/30 border border-purple-600 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-purple-300">🎖️ Strategic Healing Tips:</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li><strong>Timing:</strong> Heal after battles to keep pieces combat-ready</li>
+            <li><strong>Positioning:</strong> Keep Bishops safe but within range of your army</li>
+            <li><strong>Leveling:</strong> Higher level Bishops heal much more effectively</li>
+            <li><strong>Priority:</strong> Heal your most valuable damaged pieces first</li>
+            <li><strong>Defense:</strong> Healing can be more valuable than attacking sometimes</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
+
+const PawnPromotionLesson = () => (
+  <div className="space-y-6">
+    <Card className="bg-gray-800 border-gray-600">
+      <CardHeader>
+        <CardTitle className="text-lg text-white flex items-center">
+          <Crown className="w-5 h-5 mr-2 text-yellow-400" />
+          Pawn Promotion System
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-gray-300 space-y-4">
+        <div className="bg-gray-700 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-white">When Promotion Happens:</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li><strong>White Pawns:</strong> Reach the opposite end of the board (back rank)</li>
+            <li><strong>Black Pawns:</strong> Reach the opposite end of the board (back rank)</li>
+            <li><strong>Automatic Trigger:</strong> Promotion modal appears immediately when pawn reaches end</li>
+            <li><strong>Required Choice:</strong> You must choose a piece type before continuing</li>
+          </ul>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-yellow-900/30 border border-yellow-600 p-3 rounded-lg">
+            <h5 className="font-semibold text-yellow-300 mb-2 flex items-center">
+              <Crown className="w-4 h-4 mr-1" />
+              Queen ♛
+            </h5>
+            <p className="text-xs">Most powerful piece - combines Rook and Bishop moves</p>
+            <div className="text-xs mt-1">Health: 80 | Most versatile choice</div>
+          </div>
+          <div className="bg-red-900/30 border border-red-600 p-3 rounded-lg">
+            <h5 className="font-semibold text-red-300 mb-2">Rook ♜</h5>
+            <p className="text-xs">Strong linear movement - horizontal and vertical</p>
+            <div className="text-xs mt-1">Health: 60 | Great for control</div>
+          </div>
+          <div className="bg-blue-900/30 border border-blue-600 p-3 rounded-lg">
+            <h5 className="font-semibold text-blue-300 mb-2">Bishop ♝</h5>
+            <p className="text-xs">Diagonal movement plus healing ability</p>
+            <div className="text-xs mt-1">Health: 40 | Support role</div>
+          </div>
+          <div className="bg-green-900/30 border border-green-600 p-3 rounded-lg">
+            <h5 className="font-semibold text-green-300 mb-2">Knight ♞</h5>
+            <p className="text-xs">L-shaped jumps over other pieces</p>
+            <div className="text-xs mt-1">Health: 45 | Unique mobility</div>
+          </div>
+        </div>
+
+        <div className="bg-purple-900/30 border border-purple-600 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-purple-300">🎯 Strategic Promotion Choices:</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li><strong>Queen (Most Common):</strong> Maximum power and versatility - best for most situations</li>
+            <li><strong>Rook:</strong> Choose when you need long-range linear control or already have enough queens</li>
+            <li><strong>Bishop:</strong> Great if you need healing support or diagonal pressure</li>
+            <li><strong>Knight:</strong> Unique jumping ability can be crucial in crowded positions</li>
+          </ul>
+        </div>
+
+        <div className="bg-green-900/30 border border-green-600 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 text-green-300">⚡ Promotion Tips:</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li><strong>Plan Ahead:</strong> Think about your choice before the pawn reaches promotion</li>
+            <li><strong>Consider Position:</strong> What piece type works best in the current board position?</li>
+            <li><strong>Multiple Promotions:</strong> You can have multiple Queens if you promote multiple pawns</li>
+            <li><strong>Protection:</strong> Newly promoted pieces start at full health and level 1</li>
+            <li><strong>Battle Ready:</strong> Promoted pieces can immediately engage in combat</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
+
 const MultiplayerLesson = () => (
   <div className="space-y-6">
     <Card className="bg-gray-800 border-gray-600">
@@ -292,101 +425,14 @@ const MultiplayerLesson = () => (
   </div>
 );
 
-// Export complete lesson data
-export const tutorialLessons: TutorialLesson[] = [
-  {
-    id: 'basics-1',
-    title: 'Getting Started',
-    category: 'basics',
-    icon: Target,
-    description: 'Learn the basic UI, controls, and interface elements',
-    objectives: [
-      'Understand the game interface',
-      'Learn mouse controls for piece selection',
-      'Recognize turn indicators and piece stats'
-    ],
-    content: <BasicsLessons />,
-    estimatedTime: '3 min',
-    difficulty: 'beginner'
-  },
-  {
-    id: 'basics-2',
-    title: 'Your First Battle',
-    category: 'basics',
-    icon: Sword,
-    description: 'Experience combat mechanics with dice-based battles',
-    objectives: [
-      'Understand the battle system',
-      'Learn how dice rolls affect combat',
-      'See different battle outcomes'
-    ],
-    content: <FirstBattleLesson />,
-    estimatedTime: '5 min',
-    difficulty: 'beginner',
-    prerequisite: ['basics-1']
-  },
-  {
-    id: 'combat-1',
-    title: 'Stats & Leveling',
-    category: 'combat',
-    icon: Star,
-    description: 'Master the RPG progression system with XP and attributes',
-    objectives: [
-      'Understand Attack, Defense, and Health stats',
-      'Learn how to gain XP and level up pieces',
-      'Choose effective attribute builds'
-    ],
-    content: <StatsAndLevelingLesson />,
-    estimatedTime: '6 min',
-    difficulty: 'beginner',
-    prerequisite: ['basics-2']
-  },
-  {
-    id: 'combat-2',
-    title: 'Point System & Victory',
-    category: 'combat',
-    icon: Crown,
-    description: 'Learn how to win games and the point system',
-    objectives: [
-      'Understand point values for each piece type',
-      'Learn the victory conditions',
-      'See how king battles end games'
-    ],
-    content: <PointSystemLesson />,
-    estimatedTime: '4 min',
-    difficulty: 'beginner',
-    prerequisite: ['combat-1']
-  },
-  {
-    id: 'strategy-1',
-    title: 'Strategic Thinking',
-    category: 'strategy',
-    icon: Brain,
-    description: 'Develop tactical awareness and risk management skills',
-    objectives: [
-      'Learn XP farming techniques',
-      'Understand risk vs reward in battles',
-      'Plan piece development strategies'
-    ],
-    content: <StrategicPlayLesson />,
-    estimatedTime: '8 min',
-    difficulty: 'intermediate',
-    prerequisite: ['combat-2']
-  },
-  {
-    id: 'multiplayer-1',
-    title: 'Online Play',
-    category: 'multiplayer',
-    icon: Users,
-    description: 'Master multiplayer features and competitive play',
-    objectives: [
-      'Learn how to create and join game rooms',
-      'Understand multiplayer synchronization',
-      'Explore competitive features and etiquette'
-    ],
-    content: <MultiplayerLesson />,
-    estimatedTime: '5 min',
-    difficulty: 'intermediate',
-    prerequisite: ['strategy-1']
-  }
-];
+// Export lesson components for use in TutorialData.ts
+export {
+  BasicsLessons,
+  FirstBattleLesson,
+  StatsAndLevelingLesson,
+  PointSystemLesson,
+  BishopHealingLesson,
+  PawnPromotionLesson,
+  StrategicPlayLesson,
+  MultiplayerLesson
+};

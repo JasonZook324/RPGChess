@@ -6,7 +6,7 @@ import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 import { ArrowLeft, ArrowRight, Play, CheckCircle, BookOpen, Sword, Users, Trophy } from "lucide-react";
 import { useChessGame } from "../lib/stores/useChessGame";
-import { tutorialLessons } from "./TutorialLessons";
+import { tutorialLessons } from "./TutorialData";
 
 // Tutorial lesson data structure
 export interface TutorialLesson {
