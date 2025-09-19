@@ -389,8 +389,8 @@ export const useChessGame = create<ChessGameState>()(
         // Mark piece as moved
         newBoard[defenderPosition.row][defenderPosition.col]!.hasMoved = true;
         
-        // Check for pawn promotion after capturing
-        if (battleState.attacker.type === 'pawn') {
+        // Check for pawn promotion after capturing (but not if a king was defeated)
+        if (battleState.attacker.type === 'pawn' && battleState.defender.type !== 'king') {
           if ((battleState.attacker.color === 'white' && defenderPosition.row === 0) ||
               (battleState.attacker.color === 'black' && defenderPosition.row === 7)) {
             // Award XP before entering promotion phase
@@ -445,16 +445,28 @@ export const useChessGame = create<ChessGameState>()(
       
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
       
-      // Check for game end
+      // Check for immediate game end if a king was defeated in battle
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
       let winner = null;
       let phase: GamePhase = 'playing';
       
-      if (isCheckmate(newBoard, nextPlayer)) {
-        winner = currentPlayer;
+      // If a king was defeated in battle, end the game immediately
+      if (battleState.result === 'attacker_wins' && battleState.defender.type === 'king') {
+        winner = battleState.attacker.color === 'white' ? 'white' : 'black';
         phase = 'ended';
-      } else if (isStalemate(newBoard, nextPlayer)) {
+        console.log(`Game over! ${winner} wins by defeating the ${battleState.defender.color} king in battle!`);
+      } else if (battleState.result === 'defender_wins' && battleState.attacker.type === 'king') {
+        winner = battleState.defender.color === 'white' ? 'white' : 'black';
         phase = 'ended';
+        console.log(`Game over! ${winner} wins by defeating the ${battleState.attacker.color} king in battle!`);
+      } else {
+        // Standard chess endgame checks if no king was defeated
+        if (isCheckmate(newBoard, nextPlayer)) {
+          winner = currentPlayer;
+          phase = 'ended';
+        } else if (isStalemate(newBoard, nextPlayer)) {
+          phase = 'ended';
+        }
       }
       
       set({ 
