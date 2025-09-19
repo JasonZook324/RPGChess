@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
-import { ArrowLeft, ArrowRight, Play, CheckCircle, BookOpen, Sword, Users, Trophy, Download, FileText, Image } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, CheckCircle, BookOpen, Sword, Users, Trophy, Download, Image } from "lucide-react";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { tutorialLessons } from "./TutorialData";
 import { TutorialExporter } from "../lib/utils/tutorialExport";
@@ -223,54 +223,8 @@ function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps
     onComplete();
   };
 
-  // Export functions for individual lessons
-  const exportLessonAsPDF = async () => {
-    if (!lessonRef.current) return;
-    
-    setIsExporting(true);
-    try {
-      // Clone the lesson element for offscreen rendering
-      const originalElement = lessonRef.current;
-      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
-      
-      // Style the clone for full content capture
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-99999px';
-      clonedElement.style.top = '0';
-      clonedElement.style.width = '1024px';
-      clonedElement.style.height = 'auto';
-      clonedElement.style.maxHeight = 'none';
-      clonedElement.style.overflow = 'visible';
-      clonedElement.style.backgroundColor = '#1f2937';
-      
-      // Remove export buttons from clone
-      const exportButtons = clonedElement.querySelectorAll('[data-export-hide]');
-      exportButtons.forEach(btn => btn.remove());
-      
-      // Append offscreen for rendering
-      document.body.appendChild(clonedElement);
-      
-      // Wait for render
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
-      
-      // Export the clone
-      await TutorialExporter.exportToPDF(clonedElement, {
-        filename: TutorialExporter.getFilename(lesson.title, 'pdf')
-      });
-      
-      // Clean up
-      document.body.removeChild(clonedElement);
-    } catch (error) {
-      console.error('Lesson export failed:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
+  // Export function for lesson images
   const exportLessonAsImage = async () => {
     if (!lessonRef.current) return;
     
@@ -343,37 +297,17 @@ function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps
               </div>
               
               <div className="flex items-center space-x-2">
-                <div className="relative group" data-export-hide>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    disabled={isExporting}
-                    className="bg-purple-800 border-purple-600 text-white hover:bg-purple-700"
-                  >
-                    <Download className="w-3 h-3 mr-1" />
-                    {isExporting ? 'Exporting...' : 'Export'}
-                  </Button>
-                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                    <div className="py-2">
-                      <button
-                        onClick={exportLessonAsPDF}
-                        disabled={isExporting}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Export as PDF
-                      </button>
-                      <button
-                        onClick={exportLessonAsImage}
-                        disabled={isExporting}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
-                      >
-                        <Image className="w-4 h-4 mr-2" />
-                        Export as Image
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isExporting}
+                  onClick={exportLessonAsImage}
+                  className="bg-purple-800 border-purple-600 text-white hover:bg-purple-700"
+                  data-export-hide
+                >
+                  <Image className="w-3 h-3 mr-1" />
+                  {isExporting ? 'Exporting...' : 'Export as Image'}
+                </Button>
                 <Badge variant="outline" className="border-gray-600 text-gray-300">
                   {lesson.difficulty}
                 </Badge>
