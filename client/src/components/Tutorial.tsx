@@ -1,12 +1,13 @@
 import { Html } from "@react-three/drei";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
-import { ArrowLeft, ArrowRight, Play, CheckCircle, BookOpen, Sword, Users, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, CheckCircle, BookOpen, Sword, Users, Trophy, Download, FileText, Image } from "lucide-react";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { tutorialLessons } from "./TutorialData";
+import { TutorialExporter } from "../lib/utils/tutorialExport";
 
 // Tutorial lesson data structure
 export interface TutorialLesson {
@@ -41,6 +42,8 @@ export default function Tutorial({ onExit }: TutorialProps) {
     totalProgress: 0
   });
   const [showLessonList, setShowLessonList] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const tutorialRef = useRef<HTMLDivElement>(null);
 
   // Load progress from localStorage
   useEffect(() => {
@@ -78,6 +81,82 @@ export default function Tutorial({ onExit }: TutorialProps) {
     setCurrentLessonId(null);
   };
 
+  // Export functions
+  const exportFullTutorialAsPDF = async () => {
+    if (!tutorialRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      const lessonsData = tutorialLessons.map(lesson => {
+        // Create temporary elements to render lesson content
+        const tempDiv = document.createElement('div');
+        tempDiv.style.backgroundColor = '#1f2937';
+        tempDiv.style.color = '#ffffff';
+        tempDiv.style.padding = '20px';
+        tempDiv.style.fontFamily = 'Inter, sans-serif';
+        
+        // Create lesson content container
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = `
+          <div style="background: #374151; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="color: #fbbf24; font-size: 24px; margin-bottom: 10px;">${lesson.title}</h2>
+            <p style="color: #d1d5db; margin-bottom: 15px;">${lesson.description}</p>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+              <span style="background: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${lesson.difficulty}</span>
+              <span style="background: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${lesson.estimatedTime}</span>
+            </div>
+            <h3 style="color: #fbbf24; font-size: 18px; margin-bottom: 10px;">Learning Objectives:</h3>
+            <ul style="list-style: disc; margin-left: 20px; margin-bottom: 20px;">
+              ${lesson.objectives.map(obj => `<li style="margin-bottom: 5px;">${obj}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+        
+        tempDiv.appendChild(contentDiv);
+        return { title: lesson.title, element: tempDiv };
+      });
+
+      await TutorialExporter.exportMultipleLessonsToPDF(lessonsData, {
+        filename: 'chess-rpg-complete-tutorial.pdf'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportTutorialOverviewAsPDF = async () => {
+    if (!tutorialRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      await TutorialExporter.exportToPDF(tutorialRef.current, {
+        filename: 'chess-rpg-tutorial-overview.pdf'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportTutorialOverviewAsImage = async () => {
+    if (!tutorialRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      await TutorialExporter.exportToImage(tutorialRef.current, {
+        filename: 'chess-rpg-tutorial-overview.png',
+        format: 'png'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!showLessonList && currentLessonId) {
     const currentLesson = tutorialLessons.find(l => l.id === currentLessonId);
     if (currentLesson) {
@@ -95,7 +174,7 @@ export default function Tutorial({ onExit }: TutorialProps) {
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="w-full max-w-4xl h-full max-h-[90vh] overflow-y-auto p-6">
-        <Card className="bg-gray-900 border-gray-700 text-white">
+        <Card ref={tutorialRef} className="bg-gray-900 border-gray-700 text-white">
           <CardHeader className="text-center">
             <div className="flex items-center justify-between">
               <Button 
@@ -110,7 +189,47 @@ export default function Tutorial({ onExit }: TutorialProps) {
                 <BookOpen className="w-6 h-6 text-blue-400" />
                 <CardTitle className="text-2xl font-bold">Chess RPG Tutorial</CardTitle>
               </div>
-              <div className="w-24"> {/* Spacer for center alignment */}
+              <div className="flex items-center space-x-2">
+                <div className="relative group">
+                  <Button 
+                    variant="outline" 
+                    disabled={isExporting}
+                    className="bg-purple-800 border-purple-600 text-white hover:bg-purple-700"
+                    data-export-hide
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    {isExporting ? 'Exporting...' : 'Export'}
+                  </Button>
+                  <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                    <div className="py-2">
+                      <button
+                        onClick={exportTutorialOverviewAsPDF}
+                        disabled={isExporting}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Export Overview as PDF
+                      </button>
+                      <button
+                        onClick={exportTutorialOverviewAsImage}
+                        disabled={isExporting}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                      >
+                        <Image className="w-4 h-4 mr-2" />
+                        Export Overview as Image
+                      </button>
+                      <hr className="my-1 border-gray-600" />
+                      <button
+                        onClick={exportFullTutorialAsPDF}
+                        disabled={isExporting}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Export Complete Tutorial as PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <Badge variant="secondary" className="bg-green-800 text-green-100">
                   {Math.round(progress.totalProgress)}% Complete
                 </Badge>
@@ -213,16 +332,50 @@ interface LessonViewProps {
 function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [lessonCompleted, setLessonCompleted] = useState(isCompleted);
+  const [isExporting, setIsExporting] = useState(false);
+  const lessonRef = useRef<HTMLDivElement>(null);
 
   const handleComplete = () => {
     setLessonCompleted(true);
     onComplete();
   };
 
+  // Export functions for individual lessons
+  const exportLessonAsPDF = async () => {
+    if (!lessonRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      await TutorialExporter.exportToPDF(lessonRef.current, {
+        filename: TutorialExporter.getFilename(lesson.title, 'pdf')
+      });
+    } catch (error) {
+      console.error('Lesson export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportLessonAsImage = async () => {
+    if (!lessonRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      await TutorialExporter.exportToImage(lessonRef.current, {
+        filename: TutorialExporter.getFilename(lesson.title, 'png'),
+        format: 'png'
+      });
+    } catch (error) {
+      console.error('Lesson export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
       <div className="w-full max-w-5xl h-full max-h-[95vh] overflow-y-auto p-4">
-        <Card className="bg-gray-900 border-gray-700 text-white h-full">
+        <Card ref={lessonRef} className="bg-gray-900 border-gray-700 text-white h-full">
           <CardHeader>
             <div className="flex items-center justify-between">
               <Button 
@@ -243,6 +396,37 @@ function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps
               </div>
               
               <div className="flex items-center space-x-2">
+                <div className="relative group" data-export-hide>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={isExporting}
+                    className="bg-purple-800 border-purple-600 text-white hover:bg-purple-700"
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    {isExporting ? 'Exporting...' : 'Export'}
+                  </Button>
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                    <div className="py-2">
+                      <button
+                        onClick={exportLessonAsPDF}
+                        disabled={isExporting}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Export as PDF
+                      </button>
+                      <button
+                        onClick={exportLessonAsImage}
+                        disabled={isExporting}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+                      >
+                        <Image className="w-4 h-4 mr-2" />
+                        Export as Image
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <Badge variant="outline" className="border-gray-600 text-gray-300">
                   {lesson.difficulty}
                 </Badge>
