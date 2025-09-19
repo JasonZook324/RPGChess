@@ -18,9 +18,17 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 // Session middleware
+let sessionDatabaseUrl = process.env.DATABASE_URL!;
+// Remove the prefix if it exists
+if (sessionDatabaseUrl.startsWith('DATABASE_URL=')) {
+  sessionDatabaseUrl = sessionDatabaseUrl.substring('DATABASE_URL='.length);
+}
+// Decode HTML entities
+sessionDatabaseUrl = sessionDatabaseUrl.replace(/&amp;/g, '&');
+
 const sessionMiddleware = session({
   store: new PostgresStore({
-    conString: process.env.DATABASE_URL,
+    conString: sessionDatabaseUrl,
     tableName: 'session', // Uses connect-pg-simple's default table
     createTableIfMissing: true // Automatically create session table if it doesn't exist
   }),

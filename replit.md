@@ -31,9 +31,9 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage
 - **Drizzle ORM**: Database schema definition and migration management
-- **PostgreSQL**: Configured for production database (Neon)
-- **In-Memory Storage**: Development fallback with full CRUD interface
-- **Session Management**: Express sessions with PostgreSQL store for production
+- **Neon PostgreSQL**: Connected to user's Neon database for persistent data storage
+- **Session Management**: Express sessions with PostgreSQL store using Neon connection
+- **Real-time Storage**: All user accounts, game states, and multiplayer sessions persisted in Neon database
 
 ### State Management Pattern
 - **Zustand Stores**: Separate stores for game state, audio controls, and UI state
