@@ -42,8 +42,6 @@ export default function Tutorial({ onExit }: TutorialProps) {
     totalProgress: 0
   });
   const [showLessonList, setShowLessonList] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
-  const tutorialRef = useRef<HTMLDivElement>(null);
 
   // Load progress from localStorage
   useEffect(() => {
@@ -81,81 +79,6 @@ export default function Tutorial({ onExit }: TutorialProps) {
     setCurrentLessonId(null);
   };
 
-  // Export functions
-  const exportFullTutorialAsPDF = async () => {
-    if (!tutorialRef.current) return;
-    
-    setIsExporting(true);
-    try {
-      const lessonsData = tutorialLessons.map(lesson => {
-        // Create temporary elements to render lesson content
-        const tempDiv = document.createElement('div');
-        tempDiv.style.backgroundColor = '#1f2937';
-        tempDiv.style.color = '#ffffff';
-        tempDiv.style.padding = '20px';
-        tempDiv.style.fontFamily = 'Inter, sans-serif';
-        
-        // Create lesson content container
-        const contentDiv = document.createElement('div');
-        contentDiv.innerHTML = `
-          <div style="background: #374151; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="color: #fbbf24; font-size: 24px; margin-bottom: 10px;">${lesson.title}</h2>
-            <p style="color: #d1d5db; margin-bottom: 15px;">${lesson.description}</p>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-              <span style="background: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${lesson.difficulty}</span>
-              <span style="background: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${lesson.estimatedTime}</span>
-            </div>
-            <h3 style="color: #fbbf24; font-size: 18px; margin-bottom: 10px;">Learning Objectives:</h3>
-            <ul style="list-style: disc; margin-left: 20px; margin-bottom: 20px;">
-              ${lesson.objectives.map(obj => `<li style="margin-bottom: 5px;">${obj}</li>`).join('')}
-            </ul>
-          </div>
-        `;
-        
-        tempDiv.appendChild(contentDiv);
-        return { title: lesson.title, element: tempDiv };
-      });
-
-      await TutorialExporter.exportMultipleLessonsToPDF(lessonsData, {
-        filename: 'chess-rpg-complete-tutorial.pdf'
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportTutorialOverviewAsPDF = async () => {
-    if (!tutorialRef.current) return;
-    
-    setIsExporting(true);
-    try {
-      await TutorialExporter.exportToPDF(tutorialRef.current, {
-        filename: 'chess-rpg-tutorial-overview.pdf'
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const exportTutorialOverviewAsImage = async () => {
-    if (!tutorialRef.current) return;
-    
-    setIsExporting(true);
-    try {
-      await TutorialExporter.exportToImage(tutorialRef.current, {
-        filename: 'chess-rpg-tutorial-overview.png',
-        format: 'png'
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   if (!showLessonList && currentLessonId) {
     const currentLesson = tutorialLessons.find(l => l.id === currentLessonId);
@@ -174,7 +97,7 @@ export default function Tutorial({ onExit }: TutorialProps) {
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="w-full max-w-4xl h-full max-h-[90vh] overflow-y-auto p-6">
-        <Card ref={tutorialRef} className="bg-gray-900 border-gray-700 text-white">
+        <Card className="bg-gray-900 border-gray-700 text-white">
           <CardHeader className="text-center">
             <div className="flex items-center justify-between">
               <Button 
@@ -189,47 +112,7 @@ export default function Tutorial({ onExit }: TutorialProps) {
                 <BookOpen className="w-6 h-6 text-blue-400" />
                 <CardTitle className="text-2xl font-bold">Chess RPG Tutorial</CardTitle>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="relative group">
-                  <Button 
-                    variant="outline" 
-                    disabled={isExporting}
-                    className="bg-purple-800 border-purple-600 text-white hover:bg-purple-700"
-                    data-export-hide
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {isExporting ? 'Exporting...' : 'Export'}
-                  </Button>
-                  <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-600 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                    <div className="py-2">
-                      <button
-                        onClick={exportTutorialOverviewAsPDF}
-                        disabled={isExporting}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Export Overview as PDF
-                      </button>
-                      <button
-                        onClick={exportTutorialOverviewAsImage}
-                        disabled={isExporting}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
-                      >
-                        <Image className="w-4 h-4 mr-2" />
-                        Export Overview as Image
-                      </button>
-                      <hr className="my-1 border-gray-600" />
-                      <button
-                        onClick={exportFullTutorialAsPDF}
-                        disabled={isExporting}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Export Complete Tutorial as PDF
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div className="w-24"> {/* Spacer for center alignment */}
                 <Badge variant="secondary" className="bg-green-800 text-green-100">
                   {Math.round(progress.totalProgress)}% Complete
                 </Badge>
@@ -346,9 +229,41 @@ function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps
     
     setIsExporting(true);
     try {
-      await TutorialExporter.exportToPDF(lessonRef.current, {
+      // Clone the lesson element for offscreen rendering
+      const originalElement = lessonRef.current;
+      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      
+      // Style the clone for full content capture
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-99999px';
+      clonedElement.style.top = '0';
+      clonedElement.style.width = '1024px';
+      clonedElement.style.height = 'auto';
+      clonedElement.style.maxHeight = 'none';
+      clonedElement.style.overflow = 'visible';
+      clonedElement.style.backgroundColor = '#1f2937';
+      
+      // Remove export buttons from clone
+      const exportButtons = clonedElement.querySelectorAll('[data-export-hide]');
+      exportButtons.forEach(btn => btn.remove());
+      
+      // Append offscreen for rendering
+      document.body.appendChild(clonedElement);
+      
+      // Wait for render
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+      
+      // Export the clone
+      await TutorialExporter.exportToPDF(clonedElement, {
         filename: TutorialExporter.getFilename(lesson.title, 'pdf')
       });
+      
+      // Clean up
+      document.body.removeChild(clonedElement);
     } catch (error) {
       console.error('Lesson export failed:', error);
     } finally {
@@ -361,10 +276,42 @@ function LessonView({ lesson, onComplete, onBack, isCompleted }: LessonViewProps
     
     setIsExporting(true);
     try {
-      await TutorialExporter.exportToImage(lessonRef.current, {
+      // Clone the lesson element for offscreen rendering
+      const originalElement = lessonRef.current;
+      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      
+      // Style the clone for full content capture
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-99999px';
+      clonedElement.style.top = '0';
+      clonedElement.style.width = '1024px';
+      clonedElement.style.height = 'auto';
+      clonedElement.style.maxHeight = 'none';
+      clonedElement.style.overflow = 'visible';
+      clonedElement.style.backgroundColor = '#1f2937';
+      
+      // Remove export buttons from clone
+      const exportButtons = clonedElement.querySelectorAll('[data-export-hide]');
+      exportButtons.forEach(btn => btn.remove());
+      
+      // Append offscreen for rendering
+      document.body.appendChild(clonedElement);
+      
+      // Wait for render
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+      
+      // Export the clone
+      await TutorialExporter.exportToImage(clonedElement, {
         filename: TutorialExporter.getFilename(lesson.title, 'png'),
         format: 'png'
       });
+      
+      // Clean up
+      document.body.removeChild(clonedElement);
     } catch (error) {
       console.error('Lesson export failed:', error);
     } finally {
