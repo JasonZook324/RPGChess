@@ -242,6 +242,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: 'Game creation not implemented yet' });
   });
 
+  // Statistics and leaderboard routes
+  app.get('/api/stats/me', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Get user stats
+      let userStats = await storage.getUserStats(userId);
+      
+      // Create stats if they don't exist
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          gamesLost: 0,
+          rating: 1200,
+          totalPoints: 0,
+          level: 1
+        });
+      }
+
+      // Ensure level is computed correctly
+      const computedLevel = storage.computeLevel(userStats.totalPoints, userStats.gamesWon);
+      if (computedLevel !== userStats.level) {
+        // Update level if it's out of sync
+        userStats = await storage.updateUserStats(userId, { level: computedLevel }) || userStats;
+      }
+
+      res.json({ 
+        stats: {
+          gamesPlayed: userStats.gamesPlayed,
+          gamesWon: userStats.gamesWon,
+          gamesLost: userStats.gamesLost,
+          rating: userStats.rating,
+          totalPoints: userStats.totalPoints,
+          level: userStats.level,
+          winRate: userStats.gamesPlayed > 0 ? (userStats.gamesWon / userStats.gamesPlayed) : 0
+        }
+      });
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch user statistics' });
+    }
+  });
+
+  app.get('/api/leaderboard', optionalAuth, async (req: Request, res: Response) => {
+    try {
+      const limitParam = req.query.limit as string;
+      const n = Number(limitParam);
+      const limit = Number.isFinite(n) ? Math.min(Math.max(n, 1), 100) : 50; // Default 50, max 100
+
+      const leaderboard = await storage.getLeaderboard(limit);
+      
+      res.json({ 
+        leaderboard: leaderboard.map((entry, index) => ({
+          rank: index + 1,
+          id: entry.id,
+          username: entry.username,
+          isGuest: entry.isGuest,
+          level: entry.level,
+          totalPoints: entry.totalPoints,
+          gamesPlayed: entry.gamesPlayed,
+          gamesWon: entry.gamesWon,
+          gamesLost: entry.gamesLost,
+          rating: entry.rating,
+          winRate: entry.gamesPlayed > 0 ? (entry.gamesWon / entry.gamesPlayed) : 0
+        }))
+      });
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize Socket.IO with proper CORS and session sharing
