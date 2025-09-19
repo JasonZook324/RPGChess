@@ -7,6 +7,146 @@ import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
 
+// Server-side battle system
+interface ChessPiece {
+  id: string;
+  type: 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
+  color: 'white' | 'black';
+  level: number;
+  experience: number;
+  health: number;
+  attack: number;
+  defense: number;
+  hasMoved: boolean;
+}
+
+interface BattleResult {
+  attacker: ChessPiece;
+  defender: ChessPiece;
+  originalAttacker: ChessPiece;
+  originalDefender: ChessPiece;
+  attackerRoll: number;
+  defenderRoll: number;
+  damage: number;
+  result: 'attacker_wins' | 'defender_wins' | 'both_survive';
+  pointsAwarded: number;
+}
+
+// Point values based on project requirements
+const PIECE_POINT_VALUES: Record<ChessPiece['type'], number> = {
+  pawn: 1,
+  knight: 3,
+  bishop: 3,
+  rook: 5,
+  queen: 8,
+  king: 15
+};
+
+// Server-side piece stats (must match client-side)
+function getPieceBaseStats(type: ChessPiece['type']) {
+  const stats = {
+    pawn: { maxHealth: 25, attack: 10, defense: 5 },
+    rook: { maxHealth: 60, attack: 20, defense: 12 },
+    knight: { maxHealth: 45, attack: 15, defense: 8 },
+    bishop: { maxHealth: 40, attack: 12, defense: 7 },
+    queen: { maxHealth: 80, attack: 30, defense: 15 },
+    king: { maxHealth: 100, attack: 50, defense: 18 }
+  };
+  return stats[type];
+}
+
+// Calculate effective stats with level scaling
+function getEffectiveStats(piece: ChessPiece) {
+  const baseStats = getPieceBaseStats(piece.type);
+  const levelBonus = Math.floor((piece.level - 1) * 0.1 * baseStats.attack);
+  
+  return {
+    attack: piece.attack || (baseStats.attack + levelBonus),
+    defense: piece.defense || (baseStats.defense + levelBonus)
+  };
+}
+
+// Simple seeded PRNG for consistent battle results
+function createSeededRandom(seed: string) {
+  let state = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    state = ((state << 5) - state) + char;
+    state = state & state; // Convert to 32-bit integer
+  }
+  
+  return () => {
+    state = (state * 9301 + 49297) % 233280; // Linear congruential generator
+    return Math.floor((state / 233280) * 20) + 1;
+  };
+}
+
+// Server-side battle resolution (deterministic with controlled randomization)
+function resolveBattleServerSide(attacker: ChessPiece, defender: ChessPiece, roomSeed?: string): BattleResult {
+  const originalAttacker = { ...attacker };
+  const originalDefender = { ...defender };
+  
+  const attackerStats = getEffectiveStats(attacker);
+  const defenderStats = getEffectiveStats(defender);
+  
+  // Create seeded random generator for consistent results
+  const seedValue = `${roomSeed || 'default'}-${attacker.id}-${defender.id}`;
+  const randomGen = createSeededRandom(seedValue);
+  
+  const attackerRoll = randomGen();
+  const defenderRoll = randomGen();
+  
+  const effectiveAttack = attackerStats.attack + attackerRoll;
+  const effectiveDefense = defenderStats.defense + defenderRoll;
+  
+  let damage = Math.max(1, effectiveAttack - effectiveDefense);
+  const newDefenderHealth = Math.max(0, defender.health - damage);
+  
+  let result: BattleResult['result'];
+  let finalAttackerHealth = attacker.health;
+  let finalDefenderHealth = newDefenderHealth;
+  let pointsAwarded = 0;
+  
+  if (newDefenderHealth <= 0) {
+    result = 'attacker_wins';
+    finalDefenderHealth = 0;
+    pointsAwarded = PIECE_POINT_VALUES[defender.type];
+  } else {
+    const statDifference = defenderStats.attack - attackerStats.defense;
+    const rollAdvantage = defenderRoll - attackerRoll;
+    
+    if (statDifference > 2 && rollAdvantage > 10) {
+      const counterDamage = Math.max(1, Math.min(3, statDifference));
+      
+      if (counterDamage >= attacker.health) {
+        result = 'defender_wins';
+        finalAttackerHealth = 0;
+        pointsAwarded = PIECE_POINT_VALUES[attacker.type];
+      } else {
+        result = 'both_survive';
+        finalAttackerHealth = Math.max(1, attacker.health - counterDamage);
+      }
+    } else {
+      result = 'both_survive';
+    }
+  }
+  
+  const updatedAttacker: ChessPiece = { ...attacker, health: finalAttackerHealth };
+  const updatedDefender: ChessPiece = { ...defender, health: finalDefenderHealth };
+  
+  return {
+    attacker: updatedAttacker,
+    defender: updatedDefender,
+    originalAttacker,
+    originalDefender,
+    attackerRoll,
+    defenderRoll,
+    damage,
+    result,
+    pointsAwarded
+  };
+}
+
 // Extend Express Session interface
 declare module 'express-session' {
   interface SessionData {
@@ -242,6 +382,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: 'Game creation not implemented yet' });
   });
 
+  // Statistics and leaderboard routes
+  app.get('/api/stats/me', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Get user stats
+      let userStats = await storage.getUserStats(userId);
+      
+      // Create stats if they don't exist
+      if (!userStats) {
+        userStats = await storage.createUserStats({
+          userId,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          gamesLost: 0,
+          rating: 1200,
+          totalPoints: 0,
+          level: 1
+        });
+      }
+
+      // Ensure level is computed correctly
+      const computedLevel = storage.computeLevel(userStats.totalPoints, userStats.gamesWon);
+      if (computedLevel !== userStats.level) {
+        // Update level if it's out of sync
+        userStats = await storage.updateUserStats(userId, { level: computedLevel }) || userStats;
+      }
+
+      res.json({ 
+        stats: {
+          gamesPlayed: userStats.gamesPlayed,
+          gamesWon: userStats.gamesWon,
+          gamesLost: userStats.gamesLost,
+          rating: userStats.rating,
+          totalPoints: userStats.totalPoints,
+          level: userStats.level,
+          winRate: userStats.gamesPlayed > 0 ? (userStats.gamesWon / userStats.gamesPlayed) : 0
+        }
+      });
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch user statistics' });
+    }
+  });
+
+  app.get('/api/leaderboard', optionalAuth, async (req: Request, res: Response) => {
+    try {
+      const limitParam = req.query.limit as string;
+      const n = Number(limitParam);
+      const limit = Number.isFinite(n) ? Math.min(Math.max(n, 1), 100) : 50; // Default 50, max 100
+
+      const leaderboard = await storage.getLeaderboard(limit);
+      
+      res.json({ 
+        leaderboard: leaderboard.map((entry, index) => ({
+          rank: index + 1,
+          id: entry.id,
+          username: entry.username,
+          isGuest: entry.isGuest,
+          level: entry.level,
+          totalPoints: entry.totalPoints,
+          gamesPlayed: entry.gamesPlayed,
+          gamesWon: entry.gamesWon,
+          gamesLost: entry.gamesLost,
+          rating: entry.rating,
+          winRate: entry.gamesPlayed > 0 ? (entry.gamesWon / entry.gamesPlayed) : 0
+        }))
+      });
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize Socket.IO with proper CORS and session sharing
@@ -273,9 +487,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       from: z.string(),
       to: z.string(),
       piece: z.string(),
-      moveNumber: z.number().int().positive()
+      moveNumber: z.number().int().positive(),
+      battle: z.optional(z.any()) // Battle data if this move involves combat
     }),
     gameState: z.any()
+  });
+  const battleMoveSchema = z.object({
+    roomId: z.string().min(1).max(20),
+    attacker: z.object({
+      id: z.string(),
+      type: z.enum(['pawn', 'rook', 'knight', 'bishop', 'queen', 'king']),
+      color: z.enum(['white', 'black']),
+      level: z.number().int().min(1),
+      health: z.number().int().min(0),
+      attack: z.number().int().min(0),
+      defense: z.number().int().min(0)
+    }),
+    defender: z.object({
+      id: z.string(),
+      type: z.enum(['pawn', 'rook', 'knight', 'bishop', 'queen', 'king']),
+      color: z.enum(['white', 'black']),
+      level: z.number().int().min(1),
+      health: z.number().int().min(0),
+      attack: z.number().int().min(0),
+      defense: z.number().int().min(0)
+    }),
+    moveNumber: z.number().int().positive()
   });
   const gameEndSchema = z.object({
     roomId: z.string().min(1).max(20),
@@ -296,6 +533,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     currentTurn: 'white' | 'black';
     moveCount: number;
     createdAt: Date;
+    // Point tracking for server-side validation
+    points: {
+      white: number;
+      black: number;
+    };
   }
 
   const gameRooms = new Map<string, GameRoom>();
@@ -396,7 +638,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'waiting',
           currentTurn: 'white',
           moveCount: 0,
-          createdAt: new Date()
+          createdAt: new Date(),
+          points: {
+            white: 0,
+            black: 0
+          }
         };
 
         gameRooms.set(roomId, room);
@@ -558,6 +804,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error('Make move error:', error);
         socket.emit('error', { message: 'Invalid move data' });
+      }
+    });
+
+    // Server-side battle resolution to prevent tampering
+    socket.on('battle_move', async (data) => {
+      try {
+        const { roomId, attacker, defender, moveNumber } = battleMoveSchema.parse(data);
+        
+        const player = playerSockets.get(socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
+
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        if (room.status !== 'playing') {
+          socket.emit('error', { message: 'Game is not active' });
+          return;
+        }
+
+        // Verify player is in this room and it's their turn
+        const isWhite = room.players.white?.socketId === socket.id;
+        const isBlack = room.players.black?.socketId === socket.id;
+
+        if (!isWhite && !isBlack) {
+          socket.emit('error', { message: 'Not a player in this room' });
+          return;
+        }
+
+        const playerColor = isWhite ? 'white' : 'black';
+
+        // Validate turn order
+        if (room.currentTurn !== playerColor) {
+          socket.emit('error', { message: 'Not your turn' });
+          return;
+        }
+
+        // Validate move number sequence
+        if (moveNumber !== room.moveCount + 1) {
+          socket.emit('error', { message: 'Invalid move sequence' });
+          return;
+        }
+
+        // Validate attacker belongs to current player
+        if (attacker.color !== playerColor) {
+          socket.emit('error', { message: 'Invalid attacker piece' });
+          return;
+        }
+
+        // Validate defender belongs to opponent
+        const opponentColor = playerColor === 'white' ? 'black' : 'white';
+        if (defender.color !== opponentColor) {
+          socket.emit('error', { message: 'Invalid defender piece' });
+          return;
+        }
+
+        // Basic validation: check piece stats are reasonable (prevent extreme tampering)
+        const maxLevelStats = 200; // Reasonable upper bound
+        if (attacker.health > maxLevelStats || defender.health > maxLevelStats ||
+            attacker.attack > maxLevelStats || defender.attack > maxLevelStats ||
+            attacker.defense > maxLevelStats || defender.defense > maxLevelStats) {
+          socket.emit('error', { message: 'Invalid piece stats' });
+          console.log(`Suspicious piece stats detected from ${player.username}: attacker=${JSON.stringify(attacker)}, defender=${JSON.stringify(defender)}`);
+          return;
+        }
+
+        // Create deterministic seed for this specific battle
+        const battleSeed = `${roomId}:${moveNumber}:${attacker.id}:${defender.id}`;
+        
+        // Server-side battle resolution
+        const battleResult = resolveBattleServerSide(attacker, defender, battleSeed);
+        
+        // Update point totals based on battle outcome
+        if (battleResult.pointsAwarded > 0) {
+          if (battleResult.result === 'attacker_wins') {
+            room.points[playerColor] += battleResult.pointsAwarded;
+            console.log(`${playerColor} earns ${battleResult.pointsAwarded} points for defeating ${defender.type}`);
+          } else if (battleResult.result === 'defender_wins') {
+            room.points[opponentColor] += battleResult.pointsAwarded;
+            console.log(`${opponentColor} earns ${battleResult.pointsAwarded} points for defending with ${defender.type}`);
+          }
+        }
+
+        // Update room state
+        room.currentTurn = opponentColor;
+        room.moveCount = moveNumber;
+
+        // Update database with battle points if game record exists
+        if (room.gameId) {
+          try {
+            await storage.updateGamePoints(room.gameId, room.points.white, room.points.black);
+            console.log(`Updated game ${room.gameId} points: white=${room.points.white}, black=${room.points.black}`);
+          } catch (error) {
+            console.error('Database error updating battle points:', error);
+          }
+        }
+
+        // Broadcast validated battle result to both players
+        io.to(roomId).emit('battle_resolved', {
+          battleResult,
+          points: room.points,
+          player: playerColor,
+          moveNumber
+        });
+
+        console.log(`Battle resolved in room ${roomId}: ${battleResult.result}, points awarded: ${battleResult.pointsAwarded}`);
+        
+      } catch (error) {
+        console.error('Battle move error:', error);
+        socket.emit('error', { message: 'Invalid battle data' });
       }
     });
 

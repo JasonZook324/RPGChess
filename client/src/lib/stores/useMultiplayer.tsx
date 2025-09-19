@@ -22,6 +22,11 @@ interface GameRoom {
   currentTurn: 'white' | 'black';
   moveCount: number;
   createdAt: Date;
+  // Point tracking for server-side validation
+  points?: {
+    white: number;
+    black: number;
+  };
 }
 
 interface MultiplayerState {
@@ -255,6 +260,17 @@ export const useMultiplayer = create<MultiplayerState>()(
 
       socket.on('error', (data: { message: string }) => {
         set({ error: data.message });
+      });
+
+      // Listen for server-authoritative battle results and point updates
+      socket.on('battle_resolved', (data: { battleResult: any; points: { white: number; black: number }; player: string; moveNumber: number }) => {
+        console.log('Battle resolved from server:', data);
+        
+        // Update chess game points with server-authoritative values
+        const chessGameState = useChessGame.getState();
+        chessGameState.updateGamePoints(data.points.white, data.points.black);
+        
+        console.log(`Points synchronized from server: white=${data.points.white}, black=${data.points.black}`);
       });
 
       set({ socket });
