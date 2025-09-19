@@ -723,6 +723,28 @@ export const useChessGame = create<ChessGameState>()(
         moveHistory: [...state.moveHistory, moveNotation],
         winner
       });
+
+      // Sync promotion with multiplayer opponent
+      if (state.gameMode === 'pvp' && useMultiplayer.getState().isInMultiplayerMode) {
+        const multiplayerState = useMultiplayer.getState();
+        const moveNumber =
+          multiplayerState.gameRoom?.moveCount !== undefined
+            ? multiplayerState.gameRoom.moveCount + 1
+            : 1;
+        const move = {
+          from: positionToString(promotionPosition),
+          to: positionToString(promotionPosition), // Same position for promotion
+          piece: pieceType, // The promoted piece type
+          player: multiplayerState.playerRole,
+          moveNumber,
+          promotion: {
+            pieceType,
+            position: promotionPosition
+          }
+        };
+        console.log("Emitting pawn promotion move:", move);
+        useMultiplayer.getState().makeMove(move, newBoard);
+      }
     }
   }))
 );
