@@ -473,10 +473,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    socket.on('make_move', async (data) => {
+      socket.on('make_move', async (data) => {
+          
       try {
         const { roomId, move, gameState } = makeMoveSchema.parse(data);
-
+          
         const player = playerSockets.get(socket.id);
         if (!player) {
           socket.emit('error', { message: 'Not authenticated' });

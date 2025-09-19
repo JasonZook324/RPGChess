@@ -355,7 +355,8 @@ export const useChessGame = create<ChessGameState>()(
             },
     
     resolveBattle: () => {
-      const state = get();
+        const state = get();
+        console.log("Resolving battle:", state.battleState);
       if (!state.battleState) return;
       
       const { battleState, board, currentPlayer } = state;
@@ -448,6 +449,33 @@ export const useChessGame = create<ChessGameState>()(
         moveHistory: [...state.moveHistory, moveNotation],
         winner
       });
+        // Multiplayer sync: emit move after battle
+        const multiplayerState = useMultiplayer.getState();
+        console.log("state: ", state.gameMode, multiplayerState.isInMultiplayerMode, multiplayerState.playerRole);
+        
+        if (
+            state.gameMode === 'pvp' &&
+            multiplayerState.isInMultiplayerMode &&
+            multiplayerState.playerRole
+        ) {
+            console.log("Emitting multiplayer move after battle");
+            const moveNumber =
+                multiplayerState.gameRoom?.moveCount !== undefined
+                    ? multiplayerState.gameRoom.moveCount + 1
+                    : 1;
+            // You may want to include more info about the battle in the move object
+            const move = {
+                from: positionToString(state.battleState.attackerPosition),
+                to: positionToString(state.battleState.defenderPosition),
+                piece: state.battleState.attacker.type,
+                player: multiplayerState.playerRole,
+                moveNumber,
+                battle: state.battleState // Optionally send battle details
+            };
+            console.log("Multiplayer move data:", move.battle);
+            console.log("New board state after battle:", newBoard);
+            useMultiplayer.getState().makeMove(move, newBoard);
+        }
     },
     
     updateAI: (deltaTime) => {

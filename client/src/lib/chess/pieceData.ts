@@ -47,7 +47,7 @@ export function getPieceStats(type: ChessPiece['type']): PieceStats {
     },
     king: {
       maxHealth: 100,
-      attack: 25,
+      attack: 50,
       defense: 18
     }
   };
