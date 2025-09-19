@@ -5,15 +5,17 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { LogOut, User, Users, Wifi } from "lucide-react";
+import { LogOut, User, Users, Wifi, BookOpen } from "lucide-react";
 import { useState } from "react";
 import MultiplayerLobby from "./MultiplayerLobby";
+import Tutorial from "./Tutorial";
 
 export default function GameModeSelector() {
   const { setGameMode, setAIDifficulty } = useChessGame();
   const { user, logout } = useAuth();
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [showMultiplayerLobby, setShowMultiplayerLobby] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -36,8 +38,16 @@ export default function GameModeSelector() {
     setShowMultiplayerLobby(true);
   };
 
+  const handleTutorial = () => {
+    setShowTutorial(true);
+  };
+
   const handleBackFromLobby = () => {
     setShowMultiplayerLobby(false);
+  };
+
+  const handleBackFromTutorial = () => {
+    setShowTutorial(false);
   };
 
   const handleGameStart = () => {
@@ -51,6 +61,10 @@ export default function GameModeSelector() {
         onGameStart={handleGameStart}
       />
     );
+  }
+
+  if (showTutorial) {
+    return <Tutorial onExit={handleBackFromTutorial} />;
   }
 
   return (
@@ -89,6 +103,14 @@ export default function GameModeSelector() {
 
           {/* Game Mode Buttons */}
           <div className="space-y-4">
+            <Button 
+              onClick={handleTutorial}
+              className="w-full bg-green-600 hover:bg-green-700 py-4 text-lg"
+            >
+              <BookOpen className="w-5 h-5 mr-2" />
+              📚 Interactive Tutorial
+            </Button>
+
             <Button 
               onClick={handleMultiplayer}
               className="w-full bg-purple-600 hover:bg-purple-700 py-4 text-lg"
