@@ -463,14 +463,14 @@ export const useChessGame = create<ChessGameState>()(
                 multiplayerState.gameRoom?.moveCount !== undefined
                     ? multiplayerState.gameRoom.moveCount + 1
                     : 1;
-            // You may want to include more info about the battle in the move object
+            // Use the battleState that was stored before setting it to null
             const move = {
-                from: positionToString(state.battleState.attackerPosition),
-                to: positionToString(state.battleState.defenderPosition),
-                piece: state.battleState.attacker.type,
+                from: positionToString(battleState.attackerPosition),
+                to: positionToString(battleState.defenderPosition),
+                piece: battleState.attacker.type,
                 player: multiplayerState.playerRole,
                 moveNumber,
-                battle: state.battleState // Optionally send battle details
+                battle: battleState // Send battle details
             };
             console.log("Multiplayer move data:", move.battle);
             console.log("New board state after battle:", newBoard);

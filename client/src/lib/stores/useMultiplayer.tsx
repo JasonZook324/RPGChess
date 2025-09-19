@@ -12,11 +12,16 @@ interface Player {
 
 interface GameRoom {
   id: string;
+  gameId?: number; // Database game record ID
   players: {
     white?: Player;
     black?: Player;
   };
+  gameState: any;
   status: 'waiting' | 'playing' | 'finished';
+  currentTurn: 'white' | 'black';
+  moveCount: number;
+  createdAt: Date;
 }
 
 interface MultiplayerState {
