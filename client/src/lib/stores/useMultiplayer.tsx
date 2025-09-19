@@ -150,7 +150,11 @@ export const useMultiplayer = create<MultiplayerState>()(
           gameRoom: {
             id: get().roomId!,
             players: data.players,
-            status: 'playing'
+            gameState: {},
+            status: 'playing',
+            currentTurn: 'white',
+            moveCount: 0,
+            createdAt: new Date()
           },
           isWaitingForPlayer: false,
           error: null
