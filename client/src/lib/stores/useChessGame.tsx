@@ -204,6 +204,15 @@ export const useChessGame = create<ChessGameState>()(
             // If no piece is selected
             if (!selectedSquare) {
                 if (clickedPiece && clickedPiece.color === currentPlayer) {
+                    // In multiplayer, also validate against player role
+                    const multiplayerState = useMultiplayer.getState();
+                    if (state.gameMode === 'pvp' && multiplayerState.isInMultiplayerMode) {
+                        if (clickedPiece.color !== multiplayerState.playerRole) {
+                            console.log("Prevented selection of opponent's piece:", clickedPiece.color, "vs role:", multiplayerState.playerRole);
+                            return; // Prevent selection of opponent's pieces
+                        }
+                    }
+                    
                     const validMoves = getValidMoves(board, { row, col }, isHealMode);
                     set({
                         selectedSquare: { row, col },
@@ -234,6 +243,15 @@ export const useChessGame = create<ChessGameState>()(
 
             // If clicking another piece of the same color, select it
             if (clickedPiece && clickedPiece.color === currentPlayer) {
+                // In multiplayer, also validate against player role
+                const multiplayerState = useMultiplayer.getState();
+                if (state.gameMode === 'pvp' && multiplayerState.isInMultiplayerMode) {
+                    if (clickedPiece.color !== multiplayerState.playerRole) {
+                        console.log("Prevented selection of opponent's piece:", clickedPiece.color, "vs role:", multiplayerState.playerRole);
+                        return; // Prevent selection of opponent's pieces
+                    }
+                }
+                
                 const validMoves = getValidMoves(board, { row, col }, isHealMode);
                 set({
                     selectedSquare: { row, col },
