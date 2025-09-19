@@ -156,10 +156,18 @@ export const useMultiplayer = create<MultiplayerState>()(
       socket.on('opponent_move', (data: { move: any; gameState: any; player: string; moveNumber: number }) => {
         // It's now your turn, so set currentPlayer to your own role
         const myRole = get().playerRole;
+        
+        // If playerRole is somehow null, determine it from the opponent's move
+        let nextPlayer = myRole;
+        if (!nextPlayer) {
+          nextPlayer = data.player === 'white' ? 'black' : 'white';
+          // Also restore the playerRole if it was lost
+          set({ playerRole: nextPlayer });
+        }
 
         useChessGame.setState({
           board: data.gameState,
-          currentPlayer: myRole, // <-- Ensures you can move after opponent's attack
+          currentPlayer: nextPlayer, // <-- Ensures you can move after opponent's attack
           selectedSquare: null,
           validMoves: [],
           battleState: null
