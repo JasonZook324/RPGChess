@@ -2,7 +2,7 @@
 
 ## Overview
 
-A chess game with RPG mechanics built using React Three Fiber and Express. Players can engage in traditional chess gameplay enhanced with level-up systems, attribute allocation, and battle mechanics. The game features both player vs player and player vs computer modes with different AI difficulty levels.
+A chess game with RPG mechanics built using React Three Fiber and Express. Players can engage in traditional chess gameplay enhanced with level-up systems, attribute allocation, battle mechanics, and a 90-second move timer system. The game features both player vs player and player vs computer modes with different AI difficulty levels.
 
 ## User Preferences
 
@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **RPG System**: Level progression, attribute allocation (attack, defense, health), and XP calculation
 - **Battle System**: Dice-based combat resolution when pieces capture each other
 - **AI Implementation**: Three difficulty levels with different strategic approaches
+- **Timer System**: 90-second move timer with automatic turn forfeit, pause during battles/promotions/level-ups
 
 ### Data Storage
 - **Drizzle ORM**: Database schema definition and migration management
@@ -45,6 +46,13 @@ Preferred communication style: Simple, everyday language.
 - **Animation System**: Smooth piece movements, selection feedback, and battle effects
 - **Shader Support**: GLSL shader loading for advanced visual effects
 - **Asset Management**: Support for 3D models (GLTF/GLB) and audio files
+
+### Timer System
+- **Move Timer**: 90-second countdown per turn with visual progress indicators
+- **Mobile UI**: Compact timer display in mobile status bar
+- **Desktop UI**: Prominent circular progress timer with warning states
+- **Smart Pausing**: Automatic timer pause during battles, promotions, and level-up phases
+- **Turn Forfeit**: Automatic turn forfeit when timer expires
 
 ### Development Workflow
 - **Hot Reload**: Vite development server with error overlay
