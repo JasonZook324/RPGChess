@@ -353,26 +353,15 @@ export const useChessGame = create<ChessGameState>()(
 
                 const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
 
-                // Check for game end
+                // Switch to next player (no checkmate check - victory only through king defeat)
                 const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
-                let winner = null;
-                let phase: GamePhase = 'playing';
-
-                if (isCheckmate(newBoard, nextPlayer)) {
-                    winner = currentPlayer;
-                    phase = 'ended';
-                } else if (isStalemate(newBoard, nextPlayer)) {
-                    phase = 'ended';
-                }
 
                 set({
                     board: newBoard,
                     currentPlayer: nextPlayer,
                     selectedSquare: null,
                     validMoves: [],
-                    moveHistory: [...state.moveHistory, moveNotation],
-                    winner,
-                    gamePhase: phase
+                    moveHistory: [...state.moveHistory, moveNotation]
                 });
 
                 const multiplayerState = useMultiplayer.getState();
@@ -841,17 +830,8 @@ export const useChessGame = create<ChessGameState>()(
       
       const moveNotation = `${promotingPiece.type} promotes to ${pieceType} at ${String.fromCharCode(97 + promotionPosition.col)}${8 - promotionPosition.row}`;
       
-      // Check for game end
+      // Switch to next player (no checkmate check - victory only through king defeat)
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
-      let winner = null;
-      let phase: GamePhase = 'playing';
-      
-      if (isCheckmate(newBoard, nextPlayer)) {
-        winner = currentPlayer;
-        phase = 'ended';
-      } else if (isStalemate(newBoard, nextPlayer)) {
-        phase = 'ended';
-      }
       
       set({
         board: newBoard,
@@ -860,9 +840,8 @@ export const useChessGame = create<ChessGameState>()(
         validMoves: [],
         promotionPosition: null,
         promotingPiece: null,
-        gamePhase: phase,
-        moveHistory: [...state.moveHistory, moveNotation],
-        winner
+        gamePhase: 'playing',
+        moveHistory: [...state.moveHistory, moveNotation]
       });
 
       // Sync promotion with multiplayer opponent
