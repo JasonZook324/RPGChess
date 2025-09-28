@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useState } from "react";
 import { KeyboardControls } from "@react-three/drei";
+import { useIsMobile } from "./hooks/use-is-mobile";
 import { useAudio } from "./lib/stores/useAudio";
 import "@fontsource/inter";
 import ChessGame from "./components/ChessGame";
@@ -23,6 +24,7 @@ const controls = [
 function App() {
   const { gameMode } = useChessGame();
   const { user, isCheckingAuth, checkAuth } = useAuth();
+  const isMobile = useIsMobile();
   const [showCanvas, setShowCanvas] = useState(false);
 
   // Check authentication when app loads
@@ -58,7 +60,12 @@ function App() {
           {gameMode && (
             <Canvas
               shadows
-              camera={{
+camera={isMobile ? {
+                position: [0, 12, 10],
+                fov: 60,
+                near: 0.1,
+                far: 1000
+              } : {
                 position: [0, 12, 8],
                 fov: 45,
                 near: 0.1,

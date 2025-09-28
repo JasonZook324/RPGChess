@@ -1,6 +1,7 @@
 import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { useAudio } from "../lib/stores/useAudio";
+import { useIsMobile } from "../hooks/use-is-mobile";
 import { calculateXPAward } from "../lib/chess/pieceData";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -14,6 +15,7 @@ export default function BattleModal() {
     resolveBattle 
   } = useChessGame();
   const { playHit } = useAudio();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (battleState) {
@@ -47,14 +49,14 @@ export default function BattleModal() {
   const xpInfo = getXPGain();
 
   return (
-    <Html position={[0, 5, 5]} center>
-      <Card className="w-96 bg-black/90 text-white border-red-600 animate-pulse">
+    <Html position={isMobile ? [0, 4, 5] : [0, 5, 5]} center>
+      <Card className={`${isMobile ? 'w-80 max-w-[90vw]' : 'w-96'} bg-black/90 text-white border-red-600 animate-pulse`}>
         <CardHeader>
-          <CardTitle className="text-center text-2xl text-red-400">
+          <CardTitle className={`text-center ${isMobile ? 'text-xl' : 'text-2xl'} text-red-400`}>
             ⚔️ BATTLE! ⚔️
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
           {/* Battle Participants */}
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center border border-blue-500 p-3 rounded">
@@ -109,7 +111,7 @@ export default function BattleModal() {
 
           <Button 
             onClick={resolveBattle}
-            className="w-full bg-green-600 hover:bg-green-700 text-lg py-3"
+            className={`w-full bg-green-600 hover:bg-green-700 active:bg-green-800 ${isMobile ? 'text-base py-2' : 'text-lg py-3'} touch-manipulation`}
           >
             Continue Game
           </Button>

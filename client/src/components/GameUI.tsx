@@ -1,5 +1,6 @@
 import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
+import { useIsMobile } from "../hooks/use-is-mobile";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
@@ -13,40 +14,44 @@ export default function GameUI() {
     backToMenu,
     moveHistory 
   } = useChessGame();
+  const isMobile = useIsMobile();
 
   return (
-    <Html position={[-11, 0, -5]} center>
-      <Card className="w-80 bg-black/80 text-white border-gray-600">
+    <Html 
+      position={isMobile ? [-8, 0, -5] : [-11, 0, -5]} 
+      center
+    >
+      <Card className={`${isMobile ? 'w-72' : 'w-80'} bg-black/80 text-white border-gray-600`}>
         <CardHeader>
-          <CardTitle className="text-center text-xl">
+          <CardTitle className={`text-center ${isMobile ? 'text-lg' : 'text-xl'}`}>
             Chess RPG Battle
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
           {/* Game Status */}
           <div className="text-center">
-            <div className="text-lg font-semibold">
+            <div className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
               {gamePhase === 'playing' && `${currentPlayer === 'white' ? 'White' : 'Black'}'s Turn`}
               {gamePhase === 'battle' && 'Battle in Progress!'}
               {gamePhase === 'ended' && winner && `${winner === 'white' ? 'White' : 'Black'} Wins!`}
             </div>
-            <div className="text-sm text-gray-300 mt-1">
+            <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300 mt-1`}>
               Mode: {gameMode === 'pvp' ? 'Player vs Player' : 'Player vs Computer'}
             </div>
           </div>
 
           {/* Game Controls */}
-          <div className="flex flex-col gap-2">
+          <div className={`flex flex-col ${isMobile ? 'gap-2' : 'gap-2'}`}>
             <Button 
               onClick={restartGame}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className={`w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 ${isMobile ? 'py-2 text-sm' : ''} touch-manipulation`}
             >
               Restart Game
             </Button>
             <Button 
               onClick={backToMenu}
               variant="outline"
-              className="w-full border-gray-600 hover:bg-gray-700"
+              className={`w-full border-gray-600 hover:bg-gray-700 active:bg-gray-800 ${isMobile ? 'py-2 text-sm' : ''} touch-manipulation`}
             >
               Back to Menu
             </Button>
