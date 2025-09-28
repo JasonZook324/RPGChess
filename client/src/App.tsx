@@ -11,6 +11,7 @@ import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
 import { MobileGameUI } from "./components/GameUI";
+import { MobileBattleModal } from "./components/BattleModal";
 
 // Define control keys for the game
 const controls = [
@@ -58,8 +59,9 @@ function App() {
         <KeyboardControls map={controls}>
           {!gameMode && <GameModeSelector />}
           
-          {/* Mobile UI overlay - renders outside Canvas */}
+          {/* Mobile UI overlays - render outside Canvas */}
           {gameMode && isMobile && <MobileGameUI />}
+          {gameMode && isMobile && <MobileBattleModal />}
           
           {gameMode && (
             <Canvas
