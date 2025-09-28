@@ -65,8 +65,8 @@ function App() {
             <Canvas
               shadows
               camera={isMobile ? {
-                position: [0, 15, 12],
-                fov: 70,
+                position: [0, 12, 8],
+                fov: 80,
                 near: 0.1,
                 far: 1000
               } : {
@@ -79,7 +79,11 @@ function App() {
                 antialias: true,
                 powerPreference: "default"
               }}
-              style={isMobile ? { marginTop: '60px', height: 'calc(100vh - 160px)' } : {}}
+              style={isMobile ? { 
+                marginTop: '56px', 
+                height: 'calc(100vh - 140px)',
+                width: '100%'
+              } : {}}
             >
                   <color attach="background" args={["#1a1a1a"]} />
                   
