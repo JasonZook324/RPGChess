@@ -13,7 +13,9 @@ export function MobileLevelUpModal() {
     levelUpQueue,
     activeLevelUpPieceId,
     setActiveLevelUpPiece,
-    allocateAttributes
+    allocateAttributes,
+    autoAllocateAIAttributes,
+    gameMode
   } = useChessGame();
 
   const [allocation, setAllocation] = useState({
@@ -32,9 +34,20 @@ export function MobileLevelUpModal() {
 
   useEffect(() => {
     if (shouldShowModal) {
+      // Check if first piece in queue is AI (black in PvC mode)
+      const firstPieceId = levelUpQueue[0];
+      const firstPiece = board.flat().find(p => p?.id === firstPieceId);
+      
+      if (gameMode === 'pvc' && firstPiece && firstPiece.color === 'black') {
+        // Auto-allocate for AI piece and move to next
+        console.log('Auto-allocating attributes for AI piece:', firstPiece.type);
+        autoAllocateAIAttributes(firstPieceId);
+        return;
+      }
+      
       setActiveLevelUpPiece(levelUpQueue[0]);
     }
-  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece]);
+  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece, board, gameMode, autoAllocateAIAttributes]);
 
   useEffect(() => {
     setAllocation({ attack: 0, defense: 0, maxHealth: 0 });
@@ -247,7 +260,9 @@ export default function LevelUpModal() {
     levelUpQueue,
     activeLevelUpPieceId,
     setActiveLevelUpPiece,
-    allocateAttributes
+    allocateAttributes,
+    autoAllocateAIAttributes,
+    gameMode
   } = useChessGame();
   const isMobile = useIsMobile();
 
@@ -267,10 +282,21 @@ export default function LevelUpModal() {
 
   useEffect(() => {
     if (shouldShowModal) {
+      // Check if first piece in queue is AI (black in PvC mode)
+      const firstPieceId = levelUpQueue[0];
+      const firstPiece = board.flat().find(p => p?.id === firstPieceId);
+      
+      if (gameMode === 'pvc' && firstPiece && firstPiece.color === 'black') {
+        // Auto-allocate for AI piece and move to next
+        console.log('Auto-allocating attributes for AI piece:', firstPiece.type);
+        autoAllocateAIAttributes(firstPieceId);
+        return;
+      }
+      
       // Set the first piece in queue as active
       setActiveLevelUpPiece(levelUpQueue[0]);
     }
-  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece]);
+  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece, board, gameMode, autoAllocateAIAttributes]);
 
   // Reset allocation when piece changes
   useEffect(() => {
