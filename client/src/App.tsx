@@ -13,6 +13,7 @@ import { useAuth } from "./lib/stores/useAuth";
 import { MobileGameUI } from "./components/GameUI";
 import { MobileBattleModal } from "./components/BattleModal";
 import { MobileLevelUpModal } from "./components/LevelUpModal";
+import MoveTimer from "./components/MoveTimer";
 
 // Define control keys for the game
 const controls = [
@@ -64,6 +65,9 @@ function App() {
           {gameMode && isMobile && <MobileGameUI />}
           {gameMode && isMobile && <MobileBattleModal />}
           {gameMode && isMobile && <MobileLevelUpModal />}
+          
+          {/* Timer - renders for both mobile and desktop */}
+          {gameMode && <MoveTimer />}
           
           {gameMode && (
             <Canvas

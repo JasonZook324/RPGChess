@@ -3,6 +3,7 @@ import { useChessGame } from "../lib/stores/useChessGame";
 import { useIsMobile } from "../hooks/use-is-mobile";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { MobileTimer } from "./MoveTimer";
 
 // Mobile UI Component - renders outside Three.js context
 export function MobileGameUI() {
@@ -19,14 +20,21 @@ export function MobileGameUI() {
     <div className="fixed inset-0 pointer-events-none z-50">
       {/* Top Status Bar */}
       <div className="absolute top-0 left-0 right-0 bg-black/90 text-white border-b border-gray-600 pointer-events-auto">
-        <div className="px-4 py-2 text-center">
-          <div className="text-lg font-semibold">
-            {gamePhase === 'playing' && `${currentPlayer === 'white' ? 'White' : 'Black'}'s Turn`}
-            {gamePhase === 'battle' && 'Battle in Progress!'}
-            {gamePhase === 'ended' && winner && `${winner === 'white' ? 'White' : 'Black'} Wins!`}
-          </div>
-          <div className="text-xs text-gray-300">
-            Mode: {gameMode === 'pvp' ? 'Player vs Player' : 'Player vs Computer'}
+        <div className="px-4 py-2">
+          <div className="flex justify-between items-center">
+            <div className="text-center flex-1">
+              <div className="text-lg font-semibold">
+                {gamePhase === 'playing' && `${currentPlayer === 'white' ? 'White' : 'Black'}'s Turn`}
+                {gamePhase === 'battle' && 'Battle in Progress!'}
+                {gamePhase === 'ended' && winner && `${winner === 'white' ? 'White' : 'Black'} Wins!`}
+              </div>
+              <div className="text-xs text-gray-300">
+                Mode: {gameMode === 'pvp' ? 'Player vs Player' : 'Player vs Computer'}
+              </div>
+            </div>
+            <div className="ml-4">
+              <MobileTimer />
+            </div>
           </div>
         </div>
       </div>

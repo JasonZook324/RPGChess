@@ -96,6 +96,11 @@ interface ChessGameState {
     points: number;
     pieceType: string;
   } | null;
+
+  // Timer state
+  moveTimer: number; // seconds remaining for current turn
+  timerActive: boolean; // whether timer is counting down
+  totalMoveTime: number; // total time per move (90 seconds)
   
   // Actions
   setGameMode: (mode: GameMode) => void;
@@ -122,6 +127,13 @@ interface ChessGameState {
   // Point tracking actions
   awardPoints: (player: 'white' | 'black', points: number, pieceType: string) => void;
   updateGamePoints: (whitePoints: number, blackPoints: number) => void;
+
+  // Timer actions
+  startTimer: () => void;
+  pauseTimer: () => void;
+  resetTimer: () => void;
+  tickTimer: () => void;
+  handleTimerExpire: () => void;
 }
 
 // Initial board setup
@@ -204,6 +216,11 @@ export const useChessGame = create<ChessGameState>()(
         // Experience system initial state
         levelUpQueue: [],
         activeLevelUpPieceId: null,
+
+        // Timer initial state
+        moveTimer: 90,
+        timerActive: false,
+        totalMoveTime: 90,
 
         // Heal system initial state
         isHealMode: false,
@@ -315,7 +332,8 @@ export const useChessGame = create<ChessGameState>()(
                 };
                 set({
                     battleState: battleStateWithPositions,
-                    gamePhase: 'battle'
+                    gamePhase: 'battle',
+                    timerActive: false
                 });
             } else {
                 // Regular move
@@ -339,7 +357,8 @@ export const useChessGame = create<ChessGameState>()(
                             promotingPiece: selectedPiece,
                             gamePhase: 'promotion',
                             selectedSquare: null,
-                            validMoves: []
+                            validMoves: [],
+                            timerActive: false
                         });
 
                         // Schedule AI promotion if in PvC mode and it's AI's piece
@@ -362,7 +381,9 @@ export const useChessGame = create<ChessGameState>()(
                     currentPlayer: nextPlayer,
                     selectedSquare: null,
                     validMoves: [],
-                    moveHistory: [...state.moveHistory, moveNotation]
+                    moveHistory: [...state.moveHistory, moveNotation],
+                    moveTimer: state.totalMoveTime,
+                    timerActive: true
                 });
 
                 const multiplayerState = useMultiplayer.getState();
@@ -563,7 +584,9 @@ export const useChessGame = create<ChessGameState>()(
         battleState: null,
         gamePhase: phase,
         moveHistory: [...state.moveHistory, moveNotation],
-        winner
+        winner,
+        moveTimer: state.totalMoveTime,
+        timerActive: phase === 'playing'
       });
         // Multiplayer sync: emit move after battle
         const multiplayerState = useMultiplayer.getState();
@@ -621,23 +644,31 @@ export const useChessGame = create<ChessGameState>()(
       }
     },
     
-    restartGame: () => set({
-      board: createInitialBoard(),
-      currentPlayer: 'white',
-      gamePhase: 'playing',
-      winner: null,
-      selectedSquare: null,
-      validMoves: [],
-      battleState: null,
-      moveHistory: [],
-      aiThinkingTime: 0,
-      // Reset point tracking for new game
-      gamePoints: {
-        white: 0,
-        black: 0
-      },
-      lastPointAward: null
-    }),
+    restartGame: () => {
+      set({
+        board: createInitialBoard(),
+        currentPlayer: 'white',
+        gamePhase: 'playing',
+        winner: null,
+        selectedSquare: null,
+        validMoves: [],
+        battleState: null,
+        moveHistory: [],
+        aiThinkingTime: 0,
+        // Reset point tracking for new game
+        gamePoints: {
+          white: 0,
+          black: 0
+        },
+        lastPointAward: null,
+        moveTimer: 90,
+        timerActive: true,
+        totalMoveTime: 90
+      });
+      
+      // Start the timer
+      get().startTimer();
+    },
     
     backToMenu: () => set({
       gameMode: null,
@@ -657,7 +688,10 @@ export const useChessGame = create<ChessGameState>()(
       moveHistory: [],
       aiThinkingTime: 0,
       levelUpQueue: [],
-      activeLevelUpPieceId: null
+      activeLevelUpPieceId: null,
+      moveTimer: 90,
+      timerActive: false,
+      totalMoveTime: 90
     }),
     
     // Experience system actions
@@ -794,7 +828,10 @@ export const useChessGame = create<ChessGameState>()(
       get().allocateAttributes(pieceId, allocation);
     },
 
-    setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId }),
+    setActiveLevelUpPiece: (pieceId: string | null) => set({ 
+      activeLevelUpPieceId: pieceId,
+      timerActive: pieceId === null && get().gamePhase === 'playing'
+    }),
     
     // Heal system actions
     toggleHealMode: () => {
@@ -835,7 +872,9 @@ export const useChessGame = create<ChessGameState>()(
         validMoves: [],
         isHealMode: false,
         selectedPieceForHeal: null,
-        moveHistory: [...state.moveHistory, moveNotation]
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
       });
 
       // CRITICAL FIX: Add multiplayer synchronization for healing moves
@@ -898,7 +937,9 @@ export const useChessGame = create<ChessGameState>()(
         promotionPosition: null,
         promotingPiece: null,
         gamePhase: 'playing',
-        moveHistory: [...state.moveHistory, moveNotation]
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
       });
 
       // Sync promotion with multiplayer opponent
@@ -948,6 +989,58 @@ export const useChessGame = create<ChessGameState>()(
         }
       });
       console.log(`Game points updated: white=${whitePoints}, black=${blackPoints}`);
+    },
+
+    // Timer actions
+    startTimer: () => {
+      set(state => ({ 
+        timerActive: true,
+        moveTimer: state.moveTimer > 0 ? state.moveTimer : state.totalMoveTime
+      }));
+    },
+
+    pauseTimer: () => {
+      set({ timerActive: false });
+    },
+
+    resetTimer: () => {
+      set(state => ({ 
+        moveTimer: state.totalMoveTime,
+        timerActive: false 
+      }));
+    },
+
+    tickTimer: () => {
+      set(state => {
+        if (!state.timerActive || state.moveTimer <= 0) return {};
+        
+        const newTimer = state.moveTimer - 1;
+        if (newTimer <= 0) {
+          // Timer expired - handle forfeited turn
+          get().handleTimerExpire();
+          return { moveTimer: 0, timerActive: false };
+        }
+        
+        return { moveTimer: newTimer };
+      });
+    },
+
+    handleTimerExpire: () => {
+      const state = get();
+      if (state.gamePhase !== 'playing') return;
+      
+      console.log(`Timer expired for ${state.currentPlayer}. Forfeiting turn.`);
+      
+      // Switch to next player and reset timer
+      const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+      set({ 
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        moveTimer: state.totalMoveTime,
+        timerActive: true,
+        moveHistory: [...state.moveHistory, `${state.currentPlayer} forfeited turn (time expired)`]
+      });
     }
   }))
 );
