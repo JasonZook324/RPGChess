@@ -10,6 +10,7 @@ import PromotionModal from "./components/PromotionModal";
 import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
+import { MobileGameUI } from "./components/GameUI";
 
 // Define control keys for the game
 const controls = [
@@ -57,10 +58,13 @@ function App() {
         <KeyboardControls map={controls}>
           {!gameMode && <GameModeSelector />}
           
+          {/* Mobile UI overlay - renders outside Canvas */}
+          {gameMode && isMobile && <MobileGameUI />}
+          
           {gameMode && (
             <Canvas
               shadows
-camera={isMobile ? {
+              camera={isMobile ? {
                 position: [0, 15, 12],
                 fov: 70,
                 near: 0.1,
@@ -75,6 +79,7 @@ camera={isMobile ? {
                 antialias: true,
                 powerPreference: "default"
               }}
+              style={isMobile ? { marginTop: '60px', height: 'calc(100vh - 160px)' } : {}}
             >
                   <color attach="background" args={["#1a1a1a"]} />
                   
