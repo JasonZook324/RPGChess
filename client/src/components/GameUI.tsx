@@ -18,10 +18,10 @@ export default function GameUI() {
 
   return (
     <Html 
-      position={isMobile ? [-8, 0, -5] : [-11, 0, -5]} 
+      position={isMobile ? [-10, 2, -8] : [-11, 0, -5]} 
       center
     >
-      <Card className={`${isMobile ? 'w-72' : 'w-80'} bg-black/80 text-white border-gray-600`}>
+      <Card className={`${isMobile ? 'w-64' : 'w-80'} bg-black/80 text-white border-gray-600`}>
         <CardHeader>
           <CardTitle className={`text-center ${isMobile ? 'text-lg' : 'text-xl'}`}>
             Chess RPG Battle

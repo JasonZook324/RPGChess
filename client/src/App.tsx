@@ -61,8 +61,8 @@ function App() {
             <Canvas
               shadows
 camera={isMobile ? {
-                position: [0, 12, 10],
-                fov: 60,
+                position: [0, 15, 12],
+                fov: 70,
                 near: 0.1,
                 far: 1000
               } : {

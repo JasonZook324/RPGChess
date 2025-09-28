@@ -49,8 +49,8 @@ export default function BattleModal() {
   const xpInfo = getXPGain();
 
   return (
-    <Html position={isMobile ? [0, 4, 5] : [0, 5, 5]} center>
-      <Card className={`${isMobile ? 'w-80 max-w-[90vw]' : 'w-96'} bg-black/90 text-white border-red-600 animate-pulse`}>
+    <Html position={isMobile ? [0, 6, 7] : [0, 5, 5]} center>
+      <Card className={`${isMobile ? 'w-72 max-w-[85vw]' : 'w-96'} bg-black/90 text-white border-red-600 animate-pulse`}>
         <CardHeader>
           <CardTitle className={`text-center ${isMobile ? 'text-xl' : 'text-2xl'} text-red-400`}>
             ⚔️ BATTLE! ⚔️
