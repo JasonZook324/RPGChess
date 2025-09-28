@@ -12,6 +12,7 @@ import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
 import { MobileGameUI } from "./components/GameUI";
 import { MobileBattleModal } from "./components/BattleModal";
+import { MobileLevelUpModal } from "./components/LevelUpModal";
 
 // Define control keys for the game
 const controls = [
@@ -62,6 +63,7 @@ function App() {
           {/* Mobile UI overlays - render outside Canvas */}
           {gameMode && isMobile && <MobileGameUI />}
           {gameMode && isMobile && <MobileBattleModal />}
+          {gameMode && isMobile && <MobileLevelUpModal />}
           
           {gameMode && (
             <Canvas
