@@ -4,6 +4,7 @@ import { useIsMobile } from "../hooks/use-is-mobile";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { MobileTimer } from "./MoveTimer";
+import MobileActionPanel from "./MobileActionPanel";
 
 // Mobile UI Component - renders outside Three.js context
 export function MobileGameUI() {
@@ -62,6 +63,9 @@ export function MobileGameUI() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Action Panel */}
+      <MobileActionPanel />
     </div>
   );
 }

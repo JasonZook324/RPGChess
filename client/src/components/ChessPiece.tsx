@@ -143,24 +143,24 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           </Text>
         </group>
         
-        {/* Info & Heal Buttons - Mobile Optimized */}
-        {(canHeal ? true : true) && (
+        {/* Info & Heal Buttons - Desktop Only */}
+        {!isMobile && (canHeal ? true : true) && (
           <group 
-            position={isMobile ? [0.7, bottomUIY + 0.1, bottomUIZ] : [0.5, bottomUIY, bottomUIZ]} 
+            position={[0.5, bottomUIY, bottomUIZ]} 
             rotation={[-Math.PI / 4, 0, 0]}
           >
             {/* Heal Button for Bishops */}
             {canHeal && (
-              <group position={isMobile ? [-0.35, 0, 0] : [-0.22, 0, 0]}>
+              <group position={[-0.22, 0, 0]}>
                 <mesh 
                   onClick={handleHealToggle}
                 >
-                  <circleGeometry args={[isMobile ? 0.18 : 0.1]} />
-                  <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={isMobile ? 0.9 : 0.8} />
+                  <circleGeometry args={[0.1]} />
+                  <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={0.8} />
                 </mesh>
                 <Text
                   position={[0, 0, 0.01]}
-                  fontSize={isMobile ? 0.12 : 0.07}
+                  fontSize={0.07}
                   color="#ffffff"
                   anchorX="center"
                   anchorY="middle"
@@ -176,12 +176,12 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
               <mesh 
                 onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
               >
-                <circleGeometry args={[isMobile ? 0.18 : 0.1]} />
-                <meshBasicMaterial color="#0066cc" transparent opacity={isMobile ? 0.9 : 0.8} />
+                <circleGeometry args={[0.1]} />
+                <meshBasicMaterial color="#0066cc" transparent opacity={0.8} />
               </mesh>
               <Text
                 position={[0, 0, 0.01]}
-                fontSize={isMobile ? 0.14 : 0.08}
+                fontSize={0.08}
                 color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
