@@ -16,7 +16,7 @@ interface ChessPieceProps {
 
 export default function ChessPiece({ piece, position, row, col }: ChessPieceProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const { selectedSquare, currentPlayer, isHealMode, toggleHealMode } = useChessGame();
+  const { selectedSquare, currentPlayer, isHealMode, toggleHealMode, isPoisonMode, togglePoisonMode } = useChessGame();
   const [showInfo, setShowInfo] = useState(false);
   const isMobile = useIsMobile();
   
@@ -29,6 +29,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const isSelected = Boolean(selectedSquare?.row === row && selectedSquare?.col === col);
   const isCurrentPlayerPiece = piece.color === currentPlayer;
   const canHeal = piece.type === 'bishop' && isCurrentPlayerPiece;
+  const canPoison = piece.type === 'knight' && isCurrentPlayerPiece;
+  const isOnPoisonCooldown = canPoison && !!(piece.poisonCooldown && piece.poisonCooldown > 0);
   
   // Initialize position on mount
   useEffect(() => {
@@ -166,6 +168,13 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     toggleHealMode();
   };
 
+  const handlePoisonToggle = (e: any) => {
+    e.stopPropagation();
+    if (!isOnPoisonCooldown) {
+      togglePoisonMode();
+    }
+  };
+
   return (
     <group position={[0, 0, 0]}>
       <group ref={groupRef}>
@@ -214,8 +223,8 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           </Text>
         </group>
         
-        {/* Info & Heal Buttons - Desktop Only */}
-        {!isMobile && (canHeal ? true : true) && (
+        {/* Info & Action Buttons - Desktop Only */}
+        {!isMobile && (canHeal || canPoison) && (
           <group 
             position={[0.5, bottomUIY, bottomUIZ]} 
             rotation={[-Math.PI / 4, 0, 0]}
@@ -242,6 +251,40 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 </Text>
               </group>
             )}
+            
+            {/* Poison Button for Knights */}
+            {canPoison && (
+              <group position={[-0.22, 0, 0]}>
+                <mesh 
+                  onClick={isOnPoisonCooldown ? undefined : handlePoisonToggle}
+                >
+                  <circleGeometry args={[0.1]} />
+                  <meshBasicMaterial 
+                    color={
+                      isOnPoisonCooldown 
+                        ? "#666666" 
+                        : isPoisonMode 
+                          ? "#00ff00" 
+                          : "#cc00cc"
+                    } 
+                    transparent 
+                    opacity={isOnPoisonCooldown ? 0.5 : 0.8} 
+                  />
+                </mesh>
+                <Text
+                  position={[0, 0, 0.01]}
+                  fontSize={0.07}
+                  color={isOnPoisonCooldown ? "#999999" : "#ffffff"}
+                  anchorX="center"
+                  anchorY="middle"
+                  onClick={isOnPoisonCooldown ? undefined : handlePoisonToggle}
+                  raycast={() => null}
+                >
+                  P
+                </Text>
+              </group>
+            )}
+            
             {/* Info Button */}
             <group position={[0, 0, 0]}>
               <mesh 
