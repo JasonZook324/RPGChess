@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useState } from "react";
 import { KeyboardControls } from "@react-three/drei";
+import { useIsMobile } from "./hooks/use-is-mobile";
 import { useAudio } from "./lib/stores/useAudio";
 import "@fontsource/inter";
 import ChessGame from "./components/ChessGame";
@@ -9,6 +10,9 @@ import PromotionModal from "./components/PromotionModal";
 import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
+import { MobileGameUI } from "./components/GameUI";
+import { MobileBattleModal } from "./components/BattleModal";
+import { MobileLevelUpModal } from "./components/LevelUpModal";
 
 // Define control keys for the game
 const controls = [
@@ -23,6 +27,7 @@ const controls = [
 function App() {
   const { gameMode } = useChessGame();
   const { user, isCheckingAuth, checkAuth } = useAuth();
+  const isMobile = useIsMobile();
   const [showCanvas, setShowCanvas] = useState(false);
 
   // Check authentication when app loads
@@ -55,10 +60,20 @@ function App() {
         <KeyboardControls map={controls}>
           {!gameMode && <GameModeSelector />}
           
+          {/* Mobile UI overlays - render outside Canvas */}
+          {gameMode && isMobile && <MobileGameUI />}
+          {gameMode && isMobile && <MobileBattleModal />}
+          {gameMode && isMobile && <MobileLevelUpModal />}
+          
           {gameMode && (
             <Canvas
               shadows
-              camera={{
+              camera={isMobile ? {
+                position: [0, 12, 8],
+                fov: 80,
+                near: 0.1,
+                far: 1000
+              } : {
                 position: [0, 12, 8],
                 fov: 45,
                 near: 0.1,
@@ -68,6 +83,11 @@ function App() {
                 antialias: true,
                 powerPreference: "default"
               }}
+              style={isMobile ? { 
+                marginTop: '56px', 
+                height: 'calc(100vh - 140px)',
+                width: '100%'
+              } : {}}
             >
                   <color attach="background" args={["#1a1a1a"]} />
                   

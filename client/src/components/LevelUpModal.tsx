@@ -4,14 +4,18 @@ import { getEffectiveStats, getMaxHealth } from "../lib/chess/pieceData";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState, useEffect } from "react";
+import { useIsMobile } from "../hooks/use-is-mobile";
 
-export default function LevelUpModal() {
+// Mobile Level Up Modal Component - renders outside Three.js context
+export function MobileLevelUpModal() {
   const { 
     board,
     levelUpQueue,
     activeLevelUpPieceId,
     setActiveLevelUpPiece,
-    allocateAttributes
+    allocateAttributes,
+    autoAllocateAIAttributes,
+    gameMode
   } = useChessGame();
 
   const [allocation, setAllocation] = useState({
@@ -30,10 +34,269 @@ export default function LevelUpModal() {
 
   useEffect(() => {
     if (shouldShowModal) {
+      // Check if first piece in queue is AI (black in PvC mode)
+      const firstPieceId = levelUpQueue[0];
+      const firstPiece = board.flat().find(p => p?.id === firstPieceId);
+      
+      if (gameMode === 'pvc' && firstPiece && firstPiece.color === 'black') {
+        // Auto-allocate for AI piece and move to next
+        console.log('Auto-allocating attributes for AI piece:', firstPiece.type);
+        autoAllocateAIAttributes(firstPieceId);
+        return;
+      }
+      
+      setActiveLevelUpPiece(levelUpQueue[0]);
+    }
+  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece, board, gameMode, autoAllocateAIAttributes]);
+
+  useEffect(() => {
+    setAllocation({ attack: 0, defense: 0, maxHealth: 0 });
+  }, [activeLevelUpPieceId]);
+
+  if (!levelUpPiece || levelUpPiece.unspentPoints === 0) {
+    return null;
+  }
+
+  const currentStats = getEffectiveStats(levelUpPiece);
+  const currentMaxHealth = getMaxHealth(levelUpPiece);
+  const totalAllocated = allocation.attack + allocation.defense + allocation.maxHealth;
+  const remainingPoints = levelUpPiece.unspentPoints - totalAllocated;
+
+  const handleAllocationChange = (stat: 'attack' | 'defense' | 'maxHealth', delta: number) => {
+    const newValue = Math.max(0, allocation[stat] + delta);
+    const newTotal = totalAllocated - allocation[stat] + newValue;
+    
+    if (newTotal <= levelUpPiece.unspentPoints) {
+      setAllocation(prev => ({ ...prev, [stat]: newValue }));
+    }
+  };
+
+  const handleConfirm = () => {
+    if (totalAllocated > 0) {
+      allocateAttributes(levelUpPiece.id, allocation);
+      setAllocation({ attack: 0, defense: 0, maxHealth: 0 });
+    }
+
+    if (levelUpPiece.unspentPoints - totalAllocated === 0) {
+      const nextPieceId = levelUpQueue.find(id => id !== levelUpPiece.id);
+      setActiveLevelUpPiece(nextPieceId || null);
+    }
+  };
+
+  const handleSkip = () => {
+    const nextPieceId = levelUpQueue.find(id => id !== levelUpPiece.id);
+    setActiveLevelUpPiece(nextPieceId || null);
+    setAllocation({ attack: 0, defense: 0, maxHealth: 0 });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-sm bg-black/95 text-white border-yellow-600 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-center text-lg text-yellow-400">
+            🌟 LEVEL UP! 🌟
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Piece Info */}
+          <div className="text-center border border-yellow-500 p-2 rounded">
+            <div className="font-bold text-yellow-400 text-sm">
+              {levelUpPiece.type.toUpperCase()}
+            </div>
+            <div className="text-xs">({levelUpPiece.color})</div>
+            <div className="text-base">Level {levelUpPiece.level}</div>
+            <div className="text-xs text-green-400">
+              {levelUpPiece.unspentPoints} Points Available
+            </div>
+          </div>
+
+          {/* Current Stats */}
+          <div className="space-y-2">
+            <div className="text-center text-sm font-semibold text-blue-400">Current Stats</div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <div className="text-red-400">Attack</div>
+                <div>{currentStats.attack}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-blue-400">Defense</div>
+                <div>{currentStats.defense}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-green-400">Max HP</div>
+                <div>{currentMaxHealth}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Allocation Controls */}
+          <div className="space-y-2">
+            <div className="text-center text-sm font-semibold text-yellow-400">
+              Allocate Points ({remainingPoints} remaining)
+            </div>
+            
+            {/* Attack */}
+            <div className="flex items-center justify-between bg-gray-800 p-2 rounded">
+              <div className="flex items-center space-x-1">
+                <span className="text-red-400 text-xs w-12">Attack</span>
+                <span className="text-xs">({currentStats.attack}→{currentStats.attack + allocation.attack})</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('attack', -1)}
+                  disabled={allocation.attack === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  -
+                </Button>
+                <span className="w-6 text-center text-xs">{allocation.attack}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('attack', 1)}
+                  disabled={remainingPoints === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            {/* Defense */}
+            <div className="flex items-center justify-between bg-gray-800 p-2 rounded">
+              <div className="flex items-center space-x-1">
+                <span className="text-blue-400 text-xs w-12">Defense</span>
+                <span className="text-xs">({currentStats.defense}→{currentStats.defense + allocation.defense})</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('defense', -1)}
+                  disabled={allocation.defense === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  -
+                </Button>
+                <span className="w-6 text-center text-xs">{allocation.defense}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('defense', 1)}
+                  disabled={remainingPoints === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            {/* Max Health */}
+            <div className="flex items-center justify-between bg-gray-800 p-2 rounded">
+              <div className="flex items-center space-x-1">
+                <span className="text-green-400 text-xs w-12">Max HP</span>
+                <span className="text-xs">({currentMaxHealth}→{currentMaxHealth + allocation.maxHealth})</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('maxHealth', -1)}
+                  disabled={allocation.maxHealth === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  -
+                </Button>
+                <span className="w-6 text-center text-xs">{allocation.maxHealth}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAllocationChange('maxHealth', 1)}
+                  disabled={remainingPoints === 0}
+                  className="w-6 h-6 p-0 text-xs touch-manipulation"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex space-x-2 pt-2">
+            <Button 
+              onClick={handleConfirm}
+              disabled={totalAllocated === 0}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-sm py-2 touch-manipulation"
+            >
+              Confirm
+            </Button>
+            <Button 
+              onClick={handleSkip}
+              variant="outline"
+              className="flex-1 text-sm py-2 touch-manipulation"
+            >
+              Skip
+            </Button>
+          </div>
+
+          {/* Queue Info */}
+          {levelUpQueue.length > 1 && (
+            <div className="text-center text-xs text-gray-400">
+              {levelUpQueue.length - 1} more pieces need leveling
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Desktop Level Up Modal Component
+export default function LevelUpModal() {
+  const { 
+    board,
+    levelUpQueue,
+    activeLevelUpPieceId,
+    setActiveLevelUpPiece,
+    allocateAttributes,
+    autoAllocateAIAttributes,
+    gameMode
+  } = useChessGame();
+  const isMobile = useIsMobile();
+
+  const [allocation, setAllocation] = useState({
+    attack: 0,
+    defense: 0,
+    maxHealth: 0
+  });
+
+  // Find the piece that needs leveling up
+  const levelUpPiece = board.flat().find(piece => 
+    piece && piece.id === activeLevelUpPieceId
+  );
+
+  // Show modal when there are pieces in queue but no active piece
+  const shouldShowModal = levelUpQueue.length > 0 && !activeLevelUpPieceId;
+
+  useEffect(() => {
+    if (shouldShowModal) {
+      // Check if first piece in queue is AI (black in PvC mode)
+      const firstPieceId = levelUpQueue[0];
+      const firstPiece = board.flat().find(p => p?.id === firstPieceId);
+      
+      if (gameMode === 'pvc' && firstPiece && firstPiece.color === 'black') {
+        // Auto-allocate for AI piece and move to next
+        console.log('Auto-allocating attributes for AI piece:', firstPiece.type);
+        autoAllocateAIAttributes(firstPieceId);
+        return;
+      }
+      
       // Set the first piece in queue as active
       setActiveLevelUpPiece(levelUpQueue[0]);
     }
-  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece]);
+  }, [shouldShowModal, levelUpQueue, setActiveLevelUpPiece, board, gameMode, autoAllocateAIAttributes]);
 
   // Reset allocation when piece changes
   useEffect(() => {
@@ -41,6 +304,11 @@ export default function LevelUpModal() {
   }, [activeLevelUpPieceId]);
 
   if (!levelUpPiece || levelUpPiece.unspentPoints === 0) {
+    return null;
+  }
+
+  // Don't render anything on mobile - MobileLevelUpModal is rendered separately
+  if (isMobile) {
     return null;
   }
 

@@ -109,6 +109,7 @@ interface ChessGameState {
   // Experience system actions
   awardXP: (pieceId: string, amount: number) => void;
   allocateAttributes: (pieceId: string, allocation: { attack?: number; defense?: number; maxHealth?: number }) => void;
+  autoAllocateAIAttributes: (pieceId: string) => void;
   setActiveLevelUpPiece: (pieceId: string | null) => void;
   
   // Heal system actions
@@ -353,26 +354,15 @@ export const useChessGame = create<ChessGameState>()(
 
                 const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
 
-                // Check for game end
+                // Switch to next player (no checkmate check - victory only through king defeat)
                 const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
-                let winner = null;
-                let phase: GamePhase = 'playing';
-
-                if (isCheckmate(newBoard, nextPlayer)) {
-                    winner = currentPlayer;
-                    phase = 'ended';
-                } else if (isStalemate(newBoard, nextPlayer)) {
-                    phase = 'ended';
-                }
 
                 set({
                     board: newBoard,
                     currentPlayer: nextPlayer,
                     selectedSquare: null,
                     validMoves: [],
-                    moveHistory: [...state.moveHistory, moveNotation],
-                    winner,
-                    gamePhase: phase
+                    moveHistory: [...state.moveHistory, moveNotation]
                 });
 
                 const multiplayerState = useMultiplayer.getState();
@@ -748,6 +738,62 @@ export const useChessGame = create<ChessGameState>()(
       });
     },
     
+    // Automatic AI attribute allocation
+    autoAllocateAIAttributes: (pieceId: string) => {
+      const state = get();
+      const piece = state.board.flat().find(p => p?.id === pieceId);
+      if (!piece || piece.unspentPoints === 0) return;
+      
+      // AI allocation strategy based on piece type
+      let allocation = { attack: 0, defense: 0, maxHealth: 0 };
+      const totalPoints = piece.unspentPoints;
+      
+      switch (piece.type) {
+        case 'pawn':
+          // Pawns focus on balanced growth with slight attack preference
+          allocation.attack = Math.ceil(totalPoints * 0.4);
+          allocation.defense = Math.ceil(totalPoints * 0.3);
+          allocation.maxHealth = totalPoints - allocation.attack - allocation.defense;
+          break;
+        case 'knight':
+        case 'bishop':
+          // Light pieces focus on attack and mobility (represented by health for survivability)
+          allocation.attack = Math.ceil(totalPoints * 0.5);
+          allocation.maxHealth = Math.ceil(totalPoints * 0.3);
+          allocation.defense = totalPoints - allocation.attack - allocation.maxHealth;
+          break;
+        case 'rook':
+          // Rooks focus on attack power
+          allocation.attack = Math.ceil(totalPoints * 0.6);
+          allocation.defense = Math.ceil(totalPoints * 0.2);
+          allocation.maxHealth = totalPoints - allocation.attack - allocation.defense;
+          break;
+        case 'queen':
+          // Queens get balanced allocation but favor attack
+          allocation.attack = Math.ceil(totalPoints * 0.4);
+          allocation.defense = Math.ceil(totalPoints * 0.3);
+          allocation.maxHealth = totalPoints - allocation.attack - allocation.defense;
+          break;
+        case 'king':
+          // Kings prioritize defense and health
+          allocation.defense = Math.ceil(totalPoints * 0.4);
+          allocation.maxHealth = Math.ceil(totalPoints * 0.4);
+          allocation.attack = totalPoints - allocation.defense - allocation.maxHealth;
+          break;
+        default:
+          // Fallback to balanced allocation
+          const perStat = Math.floor(totalPoints / 3);
+          allocation.attack = perStat;
+          allocation.defense = perStat;
+          allocation.maxHealth = totalPoints - allocation.attack - allocation.defense;
+      }
+      
+      console.log(`AI auto-allocating for ${piece.type}: +${allocation.attack} attack, +${allocation.defense} defense, +${allocation.maxHealth} maxHealth`);
+      
+      // Apply the allocation
+      get().allocateAttributes(pieceId, allocation);
+    },
+
     setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId }),
     
     // Heal system actions
@@ -841,17 +887,8 @@ export const useChessGame = create<ChessGameState>()(
       
       const moveNotation = `${promotingPiece.type} promotes to ${pieceType} at ${String.fromCharCode(97 + promotionPosition.col)}${8 - promotionPosition.row}`;
       
-      // Check for game end
+      // Switch to next player (no checkmate check - victory only through king defeat)
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
-      let winner = null;
-      let phase: GamePhase = 'playing';
-      
-      if (isCheckmate(newBoard, nextPlayer)) {
-        winner = currentPlayer;
-        phase = 'ended';
-      } else if (isStalemate(newBoard, nextPlayer)) {
-        phase = 'ended';
-      }
       
       set({
         board: newBoard,
@@ -860,9 +897,8 @@ export const useChessGame = create<ChessGameState>()(
         validMoves: [],
         promotionPosition: null,
         promotingPiece: null,
-        gamePhase: phase,
-        moveHistory: [...state.moveHistory, moveNotation],
-        winner
+        gamePhase: 'playing',
+        moveHistory: [...state.moveHistory, moveNotation]
       });
 
       // Sync promotion with multiplayer opponent
