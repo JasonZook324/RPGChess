@@ -135,7 +135,7 @@ interface ChessGameState {
   // Poison system actions
   togglePoisonMode: () => void;
   performPoisonAttack: (knightPosition: Position, targetPosition: Position) => void;
-  processPoisonAndCooldowns: (inputBoard?: ChessPiece[][]) => ChessPiece[][];
+  processPoisonAndCooldowns: (inputBoard?: (ChessPiece | null)[][]) => (ChessPiece | null)[][];
   
   // Promotion actions
   promotePawn: (pieceType: PromotionPieceType) => void;
@@ -367,7 +367,7 @@ export const useChessGame = create<ChessGameState>()(
                 });
             } else {
                 // Regular move
-                const newBoard = board.map(r => [...r]);
+                let newBoard = board.map(r => [...r]);
                 newBoard[row][col] = selectedPiece;
                 newBoard[selectedSquare.row][selectedSquare.col] = null;
 
@@ -1013,7 +1013,7 @@ export const useChessGame = create<ChessGameState>()(
     },
 
     // Process poison damage and cooldowns during turn transitions
-    processPoisonAndCooldowns: (inputBoard?: ChessPiece[][]) => {
+    processPoisonAndCooldowns: (inputBoard?: (ChessPiece | null)[][]) => {
       const state = get();
       const boardToProcess = inputBoard || state.board;
       const newBoard = boardToProcess.map(row => [...row]);
