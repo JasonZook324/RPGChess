@@ -90,7 +90,7 @@ export default function MobileActionPanel() {
   const canPoison = piece && piece.type === 'knight' && piece.color === currentPlayer;
   
   // Check if knight is on cooldown
-  const isOnCooldown = canPoison && piece.poisonCooldown && piece.poisonCooldown > 0;
+  const isOnCooldown = canPoison && !!(piece.poisonCooldown && piece.poisonCooldown > 0);
 
   // Hide panel if no piece is selected or game isn't playing
   if (!piece || gamePhase !== 'playing') {

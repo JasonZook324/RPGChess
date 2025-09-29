@@ -300,6 +300,87 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           </group>
         )}
         
+        {/* Poison Status Indicator */}
+        {piece.poisonStatus && (
+          <group position={[0, 1.2, 0]}>
+            {/* Poison glow ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.08, 0.12, 16]} />
+              <meshBasicMaterial 
+                color="#00ff00" 
+                transparent 
+                opacity={0.7} 
+              />
+            </mesh>
+            {/* Main poison indicator */}
+            <mesh raycast={() => null}>
+              <circleGeometry args={[0.06]} />
+              <meshStandardMaterial 
+                color="#00aa00" 
+                emissive="#00ff00" 
+                emissiveIntensity={0.6}
+              />
+            </mesh>
+            {/* Poison symbol */}
+            <Text
+              position={[0, 0, 0.02]}
+              fontSize={0.05}
+              color="#000000"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              ☠
+            </Text>
+            {/* Turn counter */}
+            <Text
+              position={[0, -0.15, 0.02]}
+              fontSize={0.03}
+              color="#00ff00"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              {piece.poisonStatus.turnsRemaining}
+            </Text>
+          </group>
+        )}
+        
+        {/* Poison Cooldown Indicator - Only for Knights */}
+        {piece.type === 'knight' && piece.poisonCooldown && piece.poisonCooldown > 0 && (
+          <group position={[0, 1.4, 0]}>
+            {/* Cooldown glow ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.06, 0.10, 16]} />
+              <meshBasicMaterial 
+                color="#8a2be2" 
+                transparent 
+                opacity={0.6} 
+              />
+            </mesh>
+            {/* Main cooldown indicator */}
+            <mesh raycast={() => null}>
+              <circleGeometry args={[0.04]} />
+              <meshStandardMaterial 
+                color="#663399" 
+                emissive="#8a2be2" 
+                emissiveIntensity={0.4}
+              />
+            </mesh>
+            {/* Cooldown counter */}
+            <Text
+              position={[0, 0, 0.02]}
+              fontSize={0.03}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              {piece.poisonCooldown}
+            </Text>
+          </group>
+        )}
+        
         {/* Info Panel */}
         {showInfo && (
           <Html
