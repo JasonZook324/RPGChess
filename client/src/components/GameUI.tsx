@@ -113,7 +113,7 @@ export default function GameUI() {
       </div>
 
       {/* Side Control Panel */}
-      <div className="absolute top-20 right-4 pointer-events-auto">
+      <div className="absolute top-24 right-4 pointer-events-auto">
         <Card className="w-64 bg-black/90 text-white border-gray-600">
           <CardHeader>
             <CardTitle className="text-center text-lg">

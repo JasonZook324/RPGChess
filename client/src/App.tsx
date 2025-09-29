@@ -13,7 +13,6 @@ import { useAuth } from "./lib/stores/useAuth";
 import GameUI, { MobileGameUI } from "./components/GameUI";
 import BattleModal, { MobileBattleModal } from "./components/BattleModal";
 import LevelUpModal, { MobileLevelUpModal } from "./components/LevelUpModal";
-import MoveTimer from "./components/MoveTimer";
 
 // Define control keys for the game
 const controls = [
@@ -93,7 +92,11 @@ function App() {
                 marginTop: '56px', 
                 height: 'calc(100vh - 140px)',
                 width: '100%'
-              } : {}}
+              } : {
+                marginTop: '80px',
+                height: 'calc(100vh - 80px)',
+                width: '100%'
+              }}
             >
                   <color attach="background" args={["#1a1a1a"]} />
                   
