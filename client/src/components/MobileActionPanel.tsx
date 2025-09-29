@@ -140,7 +140,7 @@ export default function MobileActionPanel() {
           {canPoison && (
             <Button
               onClick={isOnCooldown ? undefined : togglePoisonMode}
-              disabled={isOnCooldown}
+              disabled={!!isOnCooldown}
               className={`w-12 h-12 rounded-full flex items-center justify-center touch-manipulation ${
                 isOnCooldown 
                   ? 'bg-gray-600 cursor-not-allowed opacity-50'

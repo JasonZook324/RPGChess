@@ -1056,10 +1056,15 @@ export const useChessGame = create<ChessGameState>()(
           if (piece.poisonCooldown && piece.poisonCooldown > 0) {
             const newCooldown = piece.poisonCooldown - 1;
             
+            // Ensure we're working with the updated piece (if poison was processed)
             if (!pieceChanged) {
               newBoard[row][col] = { ...piece };
-              pieceChanged = true;
+            } else {
+              // If piece was already modified for poison, update the current piece
+              newBoard[row][col] = { ...newBoard[row][col]! };
             }
+            
+            console.log(`${piece.type} (${piece.color}) poison cooldown: ${piece.poisonCooldown} -> ${newCooldown}`);
             
             if (newCooldown > 0) {
               newBoard[row][col]!.poisonCooldown = newCooldown;
@@ -1068,6 +1073,7 @@ export const useChessGame = create<ChessGameState>()(
               console.log(`${piece.type} (${piece.color}) poison cooldown expired`);
             }
             
+            pieceChanged = true;
             boardChanged = true;
           }
         }
