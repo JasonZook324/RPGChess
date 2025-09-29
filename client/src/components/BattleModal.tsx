@@ -1,4 +1,3 @@
-import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { useAudio } from "../lib/stores/useAudio";
 import { useIsMobile } from "../hooks/use-is-mobile";
@@ -6,7 +5,7 @@ import { calculateXPAward } from "../lib/chess/pieceData";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Mobile Battle Modal Component - renders outside Three.js context
 export function MobileBattleModal() {
@@ -16,14 +15,25 @@ export function MobileBattleModal() {
     resolveBattle 
   } = useChessGame();
   const { playHit } = useAudio();
+  const [isVisible, setIsVisible] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    if (battleState) {
+    if (gamePhase === 'battle' && battleState) {
       playHit();
+      setIsVisible(true);
+      setIsExiting(false);
+    } else if (isVisible) {
+      setIsExiting(true);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setIsExiting(false);
+      }, 300); // Match the exit animation duration
+      return () => clearTimeout(timer);
     }
-  }, [battleState, playHit]);
+  }, [battleState, playHit, gamePhase, isVisible]);
 
-  if (gamePhase !== 'battle' || !battleState) {
+  if (!isVisible || !battleState) {
     return null;
   }
 
@@ -48,9 +58,15 @@ export function MobileBattleModal() {
   const xpInfo = getXPGain();
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-sm bg-black/95 text-white border-red-600 animate-pulse">
-        <CardHeader>
+    <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 transition-opacity duration-300 ${
+      isExiting ? 'opacity-0' : 'opacity-100'
+    }`}>
+      <Card className={`w-full max-w-sm bg-black/95 text-white border-red-600 transition-all duration-300 ${
+        isExiting 
+          ? 'scale-75 opacity-0 -translate-y-4' 
+          : 'scale-100 opacity-100 translate-y-0 animate-pulse'
+      }`}>
+        <CardHeader className="animate-bounce">
           <CardTitle className="text-center text-lg text-red-400">
             ⚔️ BATTLE! ⚔️
           </CardTitle>
@@ -58,7 +74,7 @@ export function MobileBattleModal() {
         <CardContent className="space-y-3">
           {/* Battle Participants */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="text-center border border-blue-500 p-2 rounded">
+            <div className="text-center border border-blue-500 p-2 rounded animate-slideInLeft">
               <div className="font-bold text-blue-400 text-xs">Attacker</div>
               <div className="text-sm">{originalAttacker.type.toUpperCase()}</div>
               <div className="text-xs">({originalAttacker.color})</div>
@@ -69,7 +85,7 @@ export function MobileBattleModal() {
               <div className="text-xs mt-1">HP: {originalAttacker.health}</div>
             </div>
             
-            <div className="text-center border border-red-500 p-2 rounded">
+            <div className="text-center border border-red-500 p-2 rounded animate-slideInRight">
               <div className="font-bold text-red-400 text-xs">Defender</div>
               <div className="text-sm">{originalDefender.type.toUpperCase()}</div>
               <div className="text-xs">({originalDefender.color})</div>
@@ -129,14 +145,19 @@ export default function BattleModal() {
   } = useChessGame();
   const { playHit } = useAudio();
   const isMobile = useIsMobile();
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (battleState) {
+    if (gamePhase === 'battle' && battleState) {
       playHit();
+      setIsVisible(true);
+    } else if (isVisible) {
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
     }
-  }, [battleState, playHit]);
+  }, [battleState, playHit, gamePhase, isVisible]);
 
-  if (gamePhase !== 'battle' || !battleState) {
+  if (!isVisible || !battleState) {
     return null;
   }
 
@@ -166,9 +187,9 @@ export default function BattleModal() {
   const xpInfo = getXPGain();
 
   return (
-    <Html position={[0, 5, 5]} center>
-      <Card className="w-96 bg-black/90 text-white border-red-600 animate-pulse">
-        <CardHeader>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-auto">
+      <Card className="w-96 bg-black/90 text-white border-red-600 animate-fadeInScale animate-battleShake">
+        <CardHeader className="animate-bounce">
           <CardTitle className="text-center text-2xl text-red-400">
             ⚔️ BATTLE! ⚔️
           </CardTitle>
@@ -176,7 +197,7 @@ export default function BattleModal() {
         <CardContent className="space-y-4">
           {/* Battle Participants */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center border border-blue-500 p-3 rounded">
+            <div className="text-center border border-blue-500 p-3 rounded animate-slideInLeft">
               <div className="font-bold text-blue-400">Attacker</div>
               <div className="text-lg">{originalAttacker.type.toUpperCase()}</div>
               <div className="text-sm">({originalAttacker.color})</div>
@@ -187,7 +208,7 @@ export default function BattleModal() {
               <div className="text-xs mt-1">HP: {originalAttacker.health}</div>
             </div>
             
-            <div className="text-center border border-red-500 p-3 rounded">
+            <div className="text-center border border-red-500 p-3 rounded animate-slideInRight">
               <div className="font-bold text-red-400">Defender</div>
               <div className="text-lg">{originalDefender.type.toUpperCase()}</div>
               <div className="text-sm">({originalDefender.color})</div>
@@ -234,6 +255,6 @@ export default function BattleModal() {
           </Button>
         </CardContent>
       </Card>
-    </Html>
+    </div>
   );
 }

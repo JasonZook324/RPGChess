@@ -31,6 +31,13 @@ export interface ChessPiece {
     maxHealth: number;
   };
   hasMoved?: boolean;
+  // Poison system
+  poisonStatus?: {
+    turnsRemaining: number;
+    damagePercentage: number; // Base 10% + 5% per knight level
+    appliedBy: string; // ID of the knight that applied the poison
+  };
+  poisonCooldown?: number; // Turns remaining until can poison again (for knights)
 }
 
 export interface Position {
@@ -82,6 +89,10 @@ interface ChessGameState {
   isHealMode: boolean;
   selectedPieceForHeal: Position | null;
   
+  // Poison system state
+  isPoisonMode: boolean;
+  selectedPieceForPoison: Position | null;
+  
   // Promotion state
   promotionPosition: Position | null;
   promotingPiece: ChessPiece | null;
@@ -96,6 +107,11 @@ interface ChessGameState {
     points: number;
     pieceType: string;
   } | null;
+
+  // Timer state
+  moveTimer: number; // seconds remaining for current turn
+  timerActive: boolean; // whether timer is counting down
+  totalMoveTime: number; // total time per move (90 seconds)
   
   // Actions
   setGameMode: (mode: GameMode) => void;
@@ -116,12 +132,24 @@ interface ChessGameState {
   toggleHealMode: () => void;
   performHeal: (bishopPosition: Position, targetPosition: Position) => void;
   
+  // Poison system actions
+  togglePoisonMode: () => void;
+  performPoisonAttack: (knightPosition: Position, targetPosition: Position) => void;
+  processPoisonAndCooldowns: (inputBoard?: (ChessPiece | null)[][]) => (ChessPiece | null)[][];
+  
   // Promotion actions
   promotePawn: (pieceType: PromotionPieceType) => void;
   
   // Point tracking actions
   awardPoints: (player: 'white' | 'black', points: number, pieceType: string) => void;
   updateGamePoints: (whitePoints: number, blackPoints: number) => void;
+
+  // Timer actions
+  startTimer: () => void;
+  pauseTimer: () => void;
+  resetTimer: () => void;
+  tickTimer: () => void;
+  handleTimerExpire: () => void;
 }
 
 // Initial board setup
@@ -205,9 +233,18 @@ export const useChessGame = create<ChessGameState>()(
         levelUpQueue: [],
         activeLevelUpPieceId: null,
 
+        // Timer initial state
+        moveTimer: 90,
+        timerActive: false,
+        totalMoveTime: 90,
+
         // Heal system initial state
         isHealMode: false,
         selectedPieceForHeal: null,
+        
+        // Poison system initial state
+        isPoisonMode: false,
+        selectedPieceForPoison: null,
 
         // Promotion initial state
         promotionPosition: null,
@@ -237,7 +274,7 @@ export const useChessGame = create<ChessGameState>()(
             const state = get();
             if (state.gamePhase !== 'playing') return;
 
-            const { board, selectedSquare, currentPlayer, isHealMode } = state;
+            const { board, selectedSquare, currentPlayer, isHealMode, isPoisonMode } = state;
             const clickedPiece = board[row][col];
 
             // If no piece is selected
@@ -252,7 +289,7 @@ export const useChessGame = create<ChessGameState>()(
                         }
                     }
                     
-                    const validMoves = getValidMoves(board, { row, col }, isHealMode);
+                    const validMoves = getValidMoves(board, { row, col }, isHealMode || isPoisonMode);
                     set({
                         selectedSquare: { row, col },
                         validMoves
@@ -280,6 +317,16 @@ export const useChessGame = create<ChessGameState>()(
                 }
             }
 
+            // Special case: poison attack in poison mode
+            if (isPoisonMode && selectedPiece && selectedPiece.type === 'knight' && clickedPiece && clickedPiece.color !== currentPlayer) {
+                // Check if this is a valid poison target
+                const isValidPoisonTarget = state.validMoves.some(move => move.row === row && move.col === col);
+                if (isValidPoisonTarget) {
+                    get().performPoisonAttack(selectedSquare, { row, col });
+                    return;
+                }
+            }
+
             // If clicking another piece of the same color, select it
             if (clickedPiece && clickedPiece.color === currentPlayer) {
                 // In multiplayer, also validate against player role
@@ -291,7 +338,7 @@ export const useChessGame = create<ChessGameState>()(
                     }
                 }
                 
-                const validMoves = getValidMoves(board, { row, col }, isHealMode);
+                const validMoves = getValidMoves(board, { row, col }, isHealMode || isPoisonMode);
                 set({
                     selectedSquare: { row, col },
                     validMoves
@@ -315,11 +362,12 @@ export const useChessGame = create<ChessGameState>()(
                 };
                 set({
                     battleState: battleStateWithPositions,
-                    gamePhase: 'battle'
+                    gamePhase: 'battle',
+                    timerActive: false
                 });
             } else {
                 // Regular move
-                const newBoard = board.map(r => [...r]);
+                let newBoard = board.map(r => [...r]);
                 newBoard[row][col] = selectedPiece;
                 newBoard[selectedSquare.row][selectedSquare.col] = null;
 
@@ -339,7 +387,8 @@ export const useChessGame = create<ChessGameState>()(
                             promotingPiece: selectedPiece,
                             gamePhase: 'promotion',
                             selectedSquare: null,
-                            validMoves: []
+                            validMoves: [],
+                            timerActive: false
                         });
 
                         // Schedule AI promotion if in PvC mode and it's AI's piece
@@ -354,6 +403,9 @@ export const useChessGame = create<ChessGameState>()(
 
                 const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
 
+                // Process poison damage and cooldowns before switching turns
+                newBoard = get().processPoisonAndCooldowns(newBoard);
+
                 // Switch to next player (no checkmate check - victory only through king defeat)
                 const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
 
@@ -362,7 +414,9 @@ export const useChessGame = create<ChessGameState>()(
                     currentPlayer: nextPlayer,
                     selectedSquare: null,
                     validMoves: [],
-                    moveHistory: [...state.moveHistory, moveNotation]
+                    moveHistory: [...state.moveHistory, moveNotation],
+                    moveTimer: state.totalMoveTime,
+                    timerActive: true
                 });
 
                 const multiplayerState = useMultiplayer.getState();
@@ -531,6 +585,9 @@ export const useChessGame = create<ChessGameState>()(
       
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
       
+      // Process poison damage and cooldowns before switching turns
+      newBoard = get().processPoisonAndCooldowns(newBoard);
+      
       // Check for immediate game end if a king was defeated in battle
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
       let winner = null;
@@ -563,7 +620,9 @@ export const useChessGame = create<ChessGameState>()(
         battleState: null,
         gamePhase: phase,
         moveHistory: [...state.moveHistory, moveNotation],
-        winner
+        winner,
+        moveTimer: state.totalMoveTime,
+        timerActive: phase === 'playing'
       });
         // Multiplayer sync: emit move after battle
         const multiplayerState = useMultiplayer.getState();
@@ -621,23 +680,31 @@ export const useChessGame = create<ChessGameState>()(
       }
     },
     
-    restartGame: () => set({
-      board: createInitialBoard(),
-      currentPlayer: 'white',
-      gamePhase: 'playing',
-      winner: null,
-      selectedSquare: null,
-      validMoves: [],
-      battleState: null,
-      moveHistory: [],
-      aiThinkingTime: 0,
-      // Reset point tracking for new game
-      gamePoints: {
-        white: 0,
-        black: 0
-      },
-      lastPointAward: null
-    }),
+    restartGame: () => {
+      set({
+        board: createInitialBoard(),
+        currentPlayer: 'white',
+        gamePhase: 'playing',
+        winner: null,
+        selectedSquare: null,
+        validMoves: [],
+        battleState: null,
+        moveHistory: [],
+        aiThinkingTime: 0,
+        // Reset point tracking for new game
+        gamePoints: {
+          white: 0,
+          black: 0
+        },
+        lastPointAward: null,
+        moveTimer: 90,
+        timerActive: true,
+        totalMoveTime: 90
+      });
+      
+      // Start the timer
+      get().startTimer();
+    },
     
     backToMenu: () => set({
       gameMode: null,
@@ -657,7 +724,10 @@ export const useChessGame = create<ChessGameState>()(
       moveHistory: [],
       aiThinkingTime: 0,
       levelUpQueue: [],
-      activeLevelUpPieceId: null
+      activeLevelUpPieceId: null,
+      moveTimer: 90,
+      timerActive: false,
+      totalMoveTime: 90
     }),
     
     // Experience system actions
@@ -794,7 +864,10 @@ export const useChessGame = create<ChessGameState>()(
       get().allocateAttributes(pieceId, allocation);
     },
 
-    setActiveLevelUpPiece: (pieceId: string | null) => set({ activeLevelUpPieceId: pieceId }),
+    setActiveLevelUpPiece: (pieceId: string | null) => set({ 
+      activeLevelUpPieceId: pieceId,
+      timerActive: pieceId === null && get().gamePhase === 'playing'
+    }),
     
     // Heal system actions
     toggleHealMode: () => {
@@ -802,6 +875,21 @@ export const useChessGame = create<ChessGameState>()(
         isHealMode: !state.isHealMode,
         selectedSquare: null,
         validMoves: [],
+        selectedPieceForHeal: null,
+        // Turn off poison mode when toggling heal mode
+        isPoisonMode: false,
+        selectedPieceForPoison: null
+      }));
+    },
+
+    togglePoisonMode: () => {
+      set((state) => ({
+        isPoisonMode: !state.isPoisonMode,
+        selectedSquare: null,
+        validMoves: [],
+        selectedPieceForPoison: null,
+        // Turn off heal mode when toggling poison mode
+        isHealMode: false,
         selectedPieceForHeal: null
       }));
     },
@@ -820,10 +908,17 @@ export const useChessGame = create<ChessGameState>()(
       const newHealth = Math.min(targetMaxHealth, target.health + healAmount);
       
       const newBoard = state.board.map(row => [...row]);
-      newBoard[targetPosition.row][targetPosition.col] = {
+      const healedPiece = {
         ...target,
         health: newHealth
       };
+      
+      // Remove poison effect when healed (if it exists)
+      if (healedPiece.poisonStatus) {
+        delete healedPiece.poisonStatus;
+      }
+      
+      newBoard[targetPosition.row][targetPosition.col] = healedPiece;
       
       const moveNotation = `${bishop.type} heals ${target.type} for ${healAmount} HP`;
       const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
@@ -835,7 +930,9 @@ export const useChessGame = create<ChessGameState>()(
         validMoves: [],
         isHealMode: false,
         selectedPieceForHeal: null,
-        moveHistory: [...state.moveHistory, moveNotation]
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
       });
 
       // CRITICAL FIX: Add multiplayer synchronization for healing moves
@@ -858,6 +955,142 @@ export const useChessGame = create<ChessGameState>()(
         console.log('Syncing healing move to opponent:', move);
         useMultiplayer.getState().makeMove(move, newBoard);
       }
+    },
+
+    performPoisonAttack: (knightPosition: Position, targetPosition: Position) => {
+      // TODO: Implement poison attack logic
+      const state = get();
+      const knight = state.board[knightPosition.row][knightPosition.col];
+      const target = state.board[targetPosition.row][targetPosition.col];
+      
+      if (!knight || !target || knight.type !== 'knight' || knight.color === target.color) {
+        return;
+      }
+      
+      // Check if knight is on cooldown
+      if (knight.poisonCooldown && knight.poisonCooldown > 0) {
+        console.log('Knight is on poison cooldown');
+        return;
+      }
+      
+      // Calculate poison damage percentage (base 10% + 5% per knight level)
+      const basePoisonDamage = 10;
+      const levelBonus = (knight.level - 1) * 5;
+      const poisonDamagePercentage = basePoisonDamage + levelBonus;
+      
+      const newBoard = state.board.map(row => [...row]);
+      
+      // Apply poison to target
+      newBoard[targetPosition.row][targetPosition.col] = {
+        ...target,
+        poisonStatus: {
+          turnsRemaining: 3,
+          damagePercentage: poisonDamagePercentage,
+          appliedBy: knight.id
+        }
+      };
+      
+      // Set knight on cooldown
+      newBoard[knightPosition.row][knightPosition.col] = {
+        ...knight,
+        poisonCooldown: 3
+      };
+      
+      const moveNotation = `${knight.type} poisons ${target.type}`;
+      const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+      
+      set({
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        isPoisonMode: false,
+        selectedPieceForPoison: null,
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
+      });
+    },
+
+    // Process poison damage and cooldowns during turn transitions
+    processPoisonAndCooldowns: (inputBoard?: (ChessPiece | null)[][]) => {
+      const state = get();
+      const boardToProcess = inputBoard || state.board;
+      const newBoard = boardToProcess.map(row => [...row]);
+      let boardChanged = false;
+      
+      // Process each piece on the board
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = newBoard[row][col];
+          if (!piece) continue;
+          
+          let pieceChanged = false;
+          
+          // Process poison damage
+          if (piece.poisonStatus) {
+            const poisonDamage = Math.floor(piece.health * (piece.poisonStatus.damagePercentage / 100));
+            const newHealth = Math.max(1, piece.health - poisonDamage); // Poison can't kill
+            const newTurnsRemaining = piece.poisonStatus.turnsRemaining - 1;
+            
+            console.log(`${piece.type} (${piece.color}) takes ${poisonDamage} poison damage (${piece.poisonStatus.damagePercentage}%). Health: ${piece.health} -> ${newHealth}. Turns remaining: ${piece.poisonStatus.turnsRemaining} -> ${newTurnsRemaining}`);
+            
+            // Create updated piece
+            const updatedPiece = {
+              ...piece,
+              health: newHealth
+            };
+            
+            // Add poison status if still active, or remove if expired
+            if (newTurnsRemaining > 0) {
+              updatedPiece.poisonStatus = {
+                ...piece.poisonStatus,
+                turnsRemaining: newTurnsRemaining
+              };
+            } else {
+              console.log(`Poison effect on ${piece.type} (${piece.color}) has expired`);
+              // Don't add poisonStatus to updatedPiece (effectively removes it)
+            }
+            
+            newBoard[row][col] = updatedPiece;
+            pieceChanged = true;
+            boardChanged = true;
+          }
+          
+          // Process poison cooldown reduction
+          if (piece.poisonCooldown && piece.poisonCooldown > 0) {
+            const newCooldown = piece.poisonCooldown - 1;
+            
+            console.log(`${piece.type} (${piece.color}) poison cooldown: ${piece.poisonCooldown} -> ${newCooldown}`);
+            
+            // Get the current piece (might have been updated by poison processing)
+            const currentPiece = newBoard[row][col] || piece;
+            
+            // Update the piece with new cooldown
+            const updatedPiece = { ...currentPiece };
+            
+            if (newCooldown > 0) {
+              updatedPiece.poisonCooldown = newCooldown;
+            } else {
+              // Remove cooldown property if expired
+              delete updatedPiece.poisonCooldown;
+              console.log(`${piece.type} (${piece.color}) poison cooldown expired`);
+            }
+            
+            newBoard[row][col] = updatedPiece;
+            pieceChanged = true;
+            boardChanged = true;
+          }
+        }
+      }
+      
+      // Update board if any changes were made and no input board was provided
+      if (boardChanged && !inputBoard) {
+        set({ board: newBoard });
+      }
+      
+      // Always return the processed board
+      return newBoard;
     },
     
     // Promotion actions
@@ -898,7 +1131,9 @@ export const useChessGame = create<ChessGameState>()(
         promotionPosition: null,
         promotingPiece: null,
         gamePhase: 'playing',
-        moveHistory: [...state.moveHistory, moveNotation]
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
       });
 
       // Sync promotion with multiplayer opponent
@@ -948,6 +1183,58 @@ export const useChessGame = create<ChessGameState>()(
         }
       });
       console.log(`Game points updated: white=${whitePoints}, black=${blackPoints}`);
+    },
+
+    // Timer actions
+    startTimer: () => {
+      set(state => ({ 
+        timerActive: true,
+        moveTimer: state.moveTimer > 0 ? state.moveTimer : state.totalMoveTime
+      }));
+    },
+
+    pauseTimer: () => {
+      set({ timerActive: false });
+    },
+
+    resetTimer: () => {
+      set(state => ({ 
+        moveTimer: state.totalMoveTime,
+        timerActive: false 
+      }));
+    },
+
+    tickTimer: () => {
+      set(state => {
+        if (!state.timerActive || state.moveTimer <= 0) return {};
+        
+        const newTimer = state.moveTimer - 1;
+        if (newTimer <= 0) {
+          // Timer expired - handle forfeited turn
+          get().handleTimerExpire();
+          return { moveTimer: 0, timerActive: false };
+        }
+        
+        return { moveTimer: newTimer };
+      });
+    },
+
+    handleTimerExpire: () => {
+      const state = get();
+      if (state.gamePhase !== 'playing') return;
+      
+      console.log(`Timer expired for ${state.currentPlayer}. Forfeiting turn.`);
+      
+      // Switch to next player and reset timer
+      const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+      set({ 
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        moveTimer: state.totalMoveTime,
+        timerActive: true,
+        moveHistory: [...state.moveHistory, `${state.currentPlayer} forfeited turn (time expired)`]
+      });
     }
   }))
 );

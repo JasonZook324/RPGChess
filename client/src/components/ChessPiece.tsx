@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, useGLTF, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -16,13 +16,40 @@ interface ChessPieceProps {
 
 export default function ChessPiece({ piece, position, row, col }: ChessPieceProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const { selectedSquare, currentPlayer, isHealMode, toggleHealMode } = useChessGame();
+  const { selectedSquare, currentPlayer, isHealMode, toggleHealMode, isPoisonMode, togglePoisonMode } = useChessGame();
   const [showInfo, setShowInfo] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Animation state for smooth movement - using refs to avoid re-renders
+  const animatedPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const targetPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const isAnimatingRef = useRef<boolean>(false);
+  const animationTimeRef = useRef<number>(0);
   
   const isSelected = Boolean(selectedSquare?.row === row && selectedSquare?.col === col);
   const isCurrentPlayerPiece = piece.color === currentPlayer;
   const canHeal = piece.type === 'bishop' && isCurrentPlayerPiece;
+  const canPoison = piece.type === 'knight' && isCurrentPlayerPiece;
+  const isOnPoisonCooldown = canPoison && !!(piece.poisonCooldown && piece.poisonCooldown > 0);
+  
+  // Initialize position on mount
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(...position);
+    }
+  }, []);
+  
+  // Update target position when position prop changes (piece moves)
+  useEffect(() => {
+    const newTargetPosition = new THREE.Vector3(...position);
+    const currentPosition = animatedPositionRef.current.clone();
+    
+    // Check if position actually changed
+    if (!currentPosition.equals(newTargetPosition)) {
+      targetPositionRef.current.copy(newTargetPosition);
+      isAnimatingRef.current = true;
+    }
+  }, [position]);
   
   // Load model at top level
   const modelPath = `/models/${piece.type}.glb`;
@@ -33,24 +60,62 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const maxHealth = getMaxHealth(piece);
   const healthPercentage = piece.health / maxHealth;
 
-  // Selection animation only
+  // Animation logic for movement, selection, and pulsing glow
   useFrame((state) => {
+    // Update animation time for effects (using ref to avoid re-renders)
+    animationTimeRef.current = state.clock.elapsedTime;
+    
     if (groupRef.current) {
-      const selectOffset = isSelected ? 0.3 : 0;
+      // Handle position animation (movement between squares)
+      if (isAnimatingRef.current) {
+        const currentPos = animatedPositionRef.current.clone();
+        const targetPos = targetPositionRef.current.clone();
+        
+        // Smooth interpolation towards target position
+        const newPos = currentPos.lerp(targetPos, 0.12); // Animation speed
+        animatedPositionRef.current.copy(newPos);
+        
+        // Update the group's base position
+        groupRef.current.position.set(newPos.x, newPos.y, newPos.z);
+        
+        // Check if we've reached the target (within a small threshold)
+        if (currentPos.distanceTo(targetPos) < 0.01) {
+          isAnimatingRef.current = false;
+          animatedPositionRef.current.copy(targetPos);
+          groupRef.current.position.set(targetPos.x, targetPos.y, targetPos.z);
+        }
+      } else {
+        // Apply selection offset on top of base position when not moving
+        const baseY = animatedPositionRef.current.y;
+        const selectOffset = isSelected ? 0.3 : 0;
+        
+        groupRef.current.position.y = THREE.MathUtils.lerp(
+          groupRef.current.position.y,
+          baseY + selectOffset,
+          0.15
+        );
+      }
       
-      groupRef.current.position.y = THREE.MathUtils.lerp(
-        groupRef.current.position.y,
-        selectOffset,
-        0.1
-      );
+      // Add pulsing glow effect for selected pieces
+      if (isSelected) {
+        const pulseIntensity = 0.3 + Math.sin(state.clock.elapsedTime * 3) * 0.15; // Pulse between 0.15 and 0.45
+        
+        groupRef.current.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            if (mesh.material && (mesh.material as THREE.MeshStandardMaterial).emissive) {
+              (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = pulseIntensity;
+            }
+          }
+        });
+      }
     }
   });
 
-  // Get piece color with selection feedback and create model
-  let pieceColor = piece.color === 'white' ? '#ffffff' : '#333333';
-  if (isSelected) {
-    pieceColor = piece.color === 'white' ? '#ffff80' : '#8080ff'; // Brighter when selected
-  }
+  // Get piece color with selection feedback
+  const baseColor = piece.color === 'white' ? '#ffffff' : '#333333';
+  const selectedColor = piece.color === 'white' ? '#ffff80' : '#8080ff';
+  const pieceColor = isSelected ? selectedColor : baseColor;
   
   // Memoized piece model and bottom UI position
   const { pieceModel, bottomUIY, bottomUIZ } = useMemo(() => {
@@ -61,18 +126,26 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     const scale = 0.8; // Smaller scale for better piece selection
     clonedScene.scale.set(scale, scale, scale);
     
-    // Apply piece color to all materials and disable raycasting on child meshes
+    // Apply piece color and selection effects to all materials
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         // Disable raycasting on all child meshes to prevent hover conflicts
         mesh.raycast = () => null;
         if (mesh.material) {
-          // Create a new material with the piece color
+          // Create enhanced material with glow effects for selection
+          const emissiveColor = isSelected ? 
+            (piece.color === 'white' ? '#ffff40' : '#4040ff') : 
+            '#000000';
+          
           mesh.material = new THREE.MeshStandardMaterial({
             color: pieceColor,
+            emissive: emissiveColor,
+            emissiveIntensity: isSelected ? 0.3 : 0,
             metalness: 0.1,
-            roughness: 0.7
+            roughness: 0.7,
+            transparent: isSelected,
+            opacity: 1
           });
         }
       }
@@ -95,8 +168,15 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     toggleHealMode();
   };
 
+  const handlePoisonToggle = (e: any) => {
+    e.stopPropagation();
+    if (!isOnPoisonCooldown) {
+      togglePoisonMode();
+    }
+  };
+
   return (
-    <group position={position}>
+    <group position={[0, 0, 0]}>
       <group ref={groupRef}>
         {/* Visual model (no interaction) */}
         <primitive object={pieceModel} />
@@ -143,24 +223,24 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
           </Text>
         </group>
         
-        {/* Info & Heal Buttons - Mobile Optimized */}
-        {(canHeal ? true : true) && (
+        {/* Info & Action Buttons - Desktop Only */}
+        {!isMobile && (canHeal || canPoison) && (
           <group 
-            position={isMobile ? [0.7, bottomUIY + 0.1, bottomUIZ] : [0.5, bottomUIY, bottomUIZ]} 
+            position={[0.5, bottomUIY, bottomUIZ]} 
             rotation={[-Math.PI / 4, 0, 0]}
           >
             {/* Heal Button for Bishops */}
             {canHeal && (
-              <group position={isMobile ? [-0.35, 0, 0] : [-0.22, 0, 0]}>
+              <group position={[-0.22, 0, 0]}>
                 <mesh 
                   onClick={handleHealToggle}
                 >
-                  <circleGeometry args={[isMobile ? 0.18 : 0.1]} />
-                  <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={isMobile ? 0.9 : 0.8} />
+                  <circleGeometry args={[0.1]} />
+                  <meshBasicMaterial color={isHealMode ? "#00ff00" : "#ff6600"} transparent opacity={0.8} />
                 </mesh>
                 <Text
                   position={[0, 0, 0.01]}
-                  fontSize={isMobile ? 0.12 : 0.07}
+                  fontSize={0.07}
                   color="#ffffff"
                   anchorX="center"
                   anchorY="middle"
@@ -171,17 +251,51 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
                 </Text>
               </group>
             )}
+            
+            {/* Poison Button for Knights */}
+            {canPoison && (
+              <group position={[-0.22, 0, 0]}>
+                <mesh 
+                  onClick={isOnPoisonCooldown ? undefined : handlePoisonToggle}
+                >
+                  <circleGeometry args={[0.1]} />
+                  <meshBasicMaterial 
+                    color={
+                      isOnPoisonCooldown 
+                        ? "#666666" 
+                        : isPoisonMode 
+                          ? "#00ff00" 
+                          : "#cc00cc"
+                    } 
+                    transparent 
+                    opacity={isOnPoisonCooldown ? 0.5 : 0.8} 
+                  />
+                </mesh>
+                <Text
+                  position={[0, 0, 0.01]}
+                  fontSize={0.07}
+                  color={isOnPoisonCooldown ? "#999999" : "#ffffff"}
+                  anchorX="center"
+                  anchorY="middle"
+                  onClick={isOnPoisonCooldown ? undefined : handlePoisonToggle}
+                  raycast={() => null}
+                >
+                  P
+                </Text>
+              </group>
+            )}
+            
             {/* Info Button */}
             <group position={[0, 0, 0]}>
               <mesh 
                 onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
               >
-                <circleGeometry args={[isMobile ? 0.18 : 0.1]} />
-                <meshBasicMaterial color="#0066cc" transparent opacity={isMobile ? 0.9 : 0.8} />
+                <circleGeometry args={[0.1]} />
+                <meshBasicMaterial color="#0066cc" transparent opacity={0.8} />
               </mesh>
               <Text
                 position={[0, 0, 0.01]}
-                fontSize={isMobile ? 0.14 : 0.08}
+                fontSize={0.08}
                 color="#ffffff"
                 anchorX="center"
                 anchorY="middle"
@@ -197,19 +311,115 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         {/* Level Up Indicator */}
         {piece.unspentPoints > 0 && (
           <group position={[0, 1.0, 0]}>
+            {/* Glowing background ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.1, 0.15, 16]} />
+              <meshBasicMaterial 
+                color="#ffd700" 
+                transparent 
+                opacity={0.8} 
+              />
+            </mesh>
+            {/* Main level up indicator */}
             <mesh raycast={() => null}>
               <circleGeometry args={[0.08]} />
-              <meshBasicMaterial color="#ffff00" />
+              <meshStandardMaterial 
+                color="#ffff00" 
+                emissive="#ffaa00" 
+                emissiveIntensity={0.5}
+              />
             </mesh>
+            {/* Level up text */}
             <Text
-              position={[0, 0, 0.01]}
+              position={[0, 0, 0.02]}
               fontSize={0.06}
               color="#000000"
               anchorX="center"
               anchorY="middle"
               raycast={() => null}
             >
-              !
+              ⭐
+            </Text>
+          </group>
+        )}
+        
+        {/* Poison Status Indicator */}
+        {piece.poisonStatus && (
+          <group position={[0, 1.2, 0]}>
+            {/* Poison glow ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.08, 0.12, 16]} />
+              <meshBasicMaterial 
+                color="#00ff00" 
+                transparent 
+                opacity={0.7} 
+              />
+            </mesh>
+            {/* Main poison indicator */}
+            <mesh raycast={() => null}>
+              <circleGeometry args={[0.06]} />
+              <meshStandardMaterial 
+                color="#00aa00" 
+                emissive="#00ff00" 
+                emissiveIntensity={0.6}
+              />
+            </mesh>
+            {/* Poison symbol */}
+            <Text
+              position={[0, 0, 0.02]}
+              fontSize={0.05}
+              color="#000000"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              ☠
+            </Text>
+            {/* Turn counter */}
+            <Text
+              position={[0, -0.15, 0.02]}
+              fontSize={0.03}
+              color="#00ff00"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              {piece.poisonStatus.turnsRemaining}
+            </Text>
+          </group>
+        )}
+        
+        {/* Poison Cooldown Indicator - Only for Knights */}
+        {piece.type === 'knight' && piece.poisonCooldown && piece.poisonCooldown > 0 && (
+          <group position={[0, 1.4, 0]}>
+            {/* Cooldown glow ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.06, 0.10, 16]} />
+              <meshBasicMaterial 
+                color="#8a2be2" 
+                transparent 
+                opacity={0.6} 
+              />
+            </mesh>
+            {/* Main cooldown indicator */}
+            <mesh raycast={() => null}>
+              <circleGeometry args={[0.04]} />
+              <meshStandardMaterial 
+                color="#663399" 
+                emissive="#8a2be2" 
+                emissiveIntensity={0.4}
+              />
+            </mesh>
+            {/* Cooldown counter */}
+            <Text
+              position={[0, 0, 0.02]}
+              fontSize={0.03}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              raycast={() => null}
+            >
+              {piece.poisonCooldown}
             </Text>
           </group>
         )}

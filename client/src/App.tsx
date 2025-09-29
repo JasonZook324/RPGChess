@@ -10,9 +10,9 @@ import PromotionModal from "./components/PromotionModal";
 import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
-import { MobileGameUI } from "./components/GameUI";
-import { MobileBattleModal } from "./components/BattleModal";
-import { MobileLevelUpModal } from "./components/LevelUpModal";
+import GameUI, { MobileGameUI } from "./components/GameUI";
+import BattleModal, { MobileBattleModal } from "./components/BattleModal";
+import LevelUpModal, { MobileLevelUpModal } from "./components/LevelUpModal";
 
 // Define control keys for the game
 const controls = [
@@ -65,6 +65,11 @@ function App() {
           {gameMode && isMobile && <MobileBattleModal />}
           {gameMode && isMobile && <MobileLevelUpModal />}
           
+          {/* Desktop UI overlays - render outside Canvas */}
+          {gameMode && !isMobile && <GameUI />}
+          {gameMode && !isMobile && <BattleModal />}
+          {gameMode && !isMobile && <LevelUpModal />}
+          
           {gameMode && (
             <Canvas
               shadows
@@ -87,7 +92,12 @@ function App() {
                 marginTop: '56px', 
                 height: 'calc(100vh - 140px)',
                 width: '100%'
-              } : {}}
+              } : {
+                marginTop: '80px',
+                marginRight: '280px',
+                height: 'calc(100vh - 80px)',
+                width: 'calc(100% - 280px)'
+              }}
             >
                   <color attach="background" args={["#1a1a1a"]} />
                   

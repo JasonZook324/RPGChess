@@ -1,9 +1,6 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import ChessBoard from "./ChessBoard";
-import GameUI from "./GameUI";
-import BattleModal from "./BattleModal";
-import LevelUpModal from "./LevelUpModal";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { useEffect } from "react";
 import { useMultiplayer } from "../lib/stores/useMultiplayer";
@@ -49,9 +46,6 @@ export default function ChessGame() {
   return (
     <group ref={gameRef}>
       <ChessBoard />
-      <GameUI />
-      <BattleModal />
-      <LevelUpModal />
     </group>
   );
 }
