@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useChessGame } from '../lib/stores/useChessGame';
 import { Button } from './ui/button';
-import { Info, Heart, X } from 'lucide-react';
+import { Info, Heart, X, Skull } from 'lucide-react';
 
 interface PieceInfoModalProps {
   piece: any;
@@ -72,7 +72,9 @@ export default function MobileActionPanel() {
     currentPlayer, 
     gamePhase, 
     isHealMode, 
-    toggleHealMode 
+    toggleHealMode,
+    isPoisonMode,
+    togglePoisonMode
   } = useChessGame();
   
   const [showPieceInfo, setShowPieceInfo] = useState(false);
@@ -83,6 +85,12 @@ export default function MobileActionPanel() {
   
   // Check if the selected piece can heal (is a bishop)
   const canHeal = piece && piece.type === 'bishop' && piece.color === currentPlayer;
+  
+  // Check if the selected piece can poison (is a knight)
+  const canPoison = piece && piece.type === 'knight' && piece.color === currentPlayer;
+  
+  // Check if knight is on cooldown
+  const isOnCooldown = canPoison && piece.poisonCooldown && piece.poisonCooldown > 0;
 
   // Hide panel if no piece is selected or game isn't playing
   if (!piece || gamePhase !== 'playing') {
@@ -125,6 +133,35 @@ export default function MobileActionPanel() {
               title={isHealMode ? "Exit heal mode" : "Enter heal mode"}
             >
               <Heart className={`w-6 h-6 ${isHealMode ? 'text-white fill-white' : 'text-white'}`} />
+            </Button>
+          )}
+
+          {/* Poison Button - only show for knights */}
+          {canPoison && (
+            <Button
+              onClick={isOnCooldown ? undefined : togglePoisonMode}
+              disabled={isOnCooldown}
+              className={`w-12 h-12 rounded-full flex items-center justify-center touch-manipulation ${
+                isOnCooldown 
+                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                  : isPoisonMode 
+                    ? 'bg-green-600 hover:bg-green-700 active:bg-green-800' 
+                    : 'bg-purple-600 hover:bg-purple-700 active:bg-purple-800'
+              }`}
+              title={
+                isOnCooldown 
+                  ? `Poison cooldown: ${piece.poisonCooldown} turns`
+                  : isPoisonMode 
+                    ? "Exit poison mode" 
+                    : "Enter poison mode"
+              }
+            >
+              <Skull className={`w-6 h-6 ${isPoisonMode ? 'text-white fill-white' : 'text-white'}`} />
+              {isOnCooldown && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {piece.poisonCooldown}
+                </span>
+              )}
             </Button>
           )}
         </div>

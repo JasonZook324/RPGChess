@@ -31,6 +31,13 @@ export interface ChessPiece {
     maxHealth: number;
   };
   hasMoved?: boolean;
+  // Poison system
+  poisonStatus?: {
+    turnsRemaining: number;
+    damagePercentage: number; // Base 10% + 5% per knight level
+    appliedBy: string; // ID of the knight that applied the poison
+  };
+  poisonCooldown?: number; // Turns remaining until can poison again (for knights)
 }
 
 export interface Position {
@@ -82,6 +89,10 @@ interface ChessGameState {
   isHealMode: boolean;
   selectedPieceForHeal: Position | null;
   
+  // Poison system state
+  isPoisonMode: boolean;
+  selectedPieceForPoison: Position | null;
+  
   // Promotion state
   promotionPosition: Position | null;
   promotingPiece: ChessPiece | null;
@@ -120,6 +131,10 @@ interface ChessGameState {
   // Heal system actions
   toggleHealMode: () => void;
   performHeal: (bishopPosition: Position, targetPosition: Position) => void;
+  
+  // Poison system actions
+  togglePoisonMode: () => void;
+  performPoisonAttack: (knightPosition: Position, targetPosition: Position) => void;
   
   // Promotion actions
   promotePawn: (pieceType: PromotionPieceType) => void;
@@ -225,6 +240,10 @@ export const useChessGame = create<ChessGameState>()(
         // Heal system initial state
         isHealMode: false,
         selectedPieceForHeal: null,
+        
+        // Poison system initial state
+        isPoisonMode: false,
+        selectedPieceForPoison: null,
 
         // Promotion initial state
         promotionPosition: null,
@@ -839,6 +858,21 @@ export const useChessGame = create<ChessGameState>()(
         isHealMode: !state.isHealMode,
         selectedSquare: null,
         validMoves: [],
+        selectedPieceForHeal: null,
+        // Turn off poison mode when toggling heal mode
+        isPoisonMode: false,
+        selectedPieceForPoison: null
+      }));
+    },
+
+    togglePoisonMode: () => {
+      set((state) => ({
+        isPoisonMode: !state.isPoisonMode,
+        selectedSquare: null,
+        validMoves: [],
+        selectedPieceForPoison: null,
+        // Turn off heal mode when toggling poison mode
+        isHealMode: false,
         selectedPieceForHeal: null
       }));
     },
@@ -897,6 +931,61 @@ export const useChessGame = create<ChessGameState>()(
         console.log('Syncing healing move to opponent:', move);
         useMultiplayer.getState().makeMove(move, newBoard);
       }
+    },
+
+    performPoisonAttack: (knightPosition: Position, targetPosition: Position) => {
+      // TODO: Implement poison attack logic
+      const state = get();
+      const knight = state.board[knightPosition.row][knightPosition.col];
+      const target = state.board[targetPosition.row][targetPosition.col];
+      
+      if (!knight || !target || knight.type !== 'knight' || knight.color === target.color) {
+        return;
+      }
+      
+      // Check if knight is on cooldown
+      if (knight.poisonCooldown && knight.poisonCooldown > 0) {
+        console.log('Knight is on poison cooldown');
+        return;
+      }
+      
+      // Calculate poison damage percentage (base 10% + 5% per knight level)
+      const basePoisonDamage = 10;
+      const levelBonus = (knight.level - 1) * 5;
+      const poisonDamagePercentage = basePoisonDamage + levelBonus;
+      
+      const newBoard = state.board.map(row => [...row]);
+      
+      // Apply poison to target
+      newBoard[targetPosition.row][targetPosition.col] = {
+        ...target,
+        poisonStatus: {
+          turnsRemaining: 3,
+          damagePercentage: poisonDamagePercentage,
+          appliedBy: knight.id
+        }
+      };
+      
+      // Set knight on cooldown
+      newBoard[knightPosition.row][knightPosition.col] = {
+        ...knight,
+        poisonCooldown: 3
+      };
+      
+      const moveNotation = `${knight.type} poisons ${target.type}`;
+      const nextPlayer = state.currentPlayer === 'white' ? 'black' : 'white';
+      
+      set({
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        selectedSquare: null,
+        validMoves: [],
+        isPoisonMode: false,
+        selectedPieceForPoison: null,
+        moveHistory: [...state.moveHistory, moveNotation],
+        moveTimer: state.totalMoveTime,
+        timerActive: true
+      });
     },
     
     // Promotion actions
