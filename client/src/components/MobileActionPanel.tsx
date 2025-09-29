@@ -102,8 +102,8 @@ export default function MobileActionPanel() {
   return (
     <>
       {/* Floating Action Panel */}
-      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40 pointer-events-auto">
-        <div className="bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-lg space-y-3">
+      <div className="fixed left-1/2 bottom-20 transform -translate-x-1/2 z-40 pointer-events-auto">
+        <div className="bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-lg flex space-x-3">
           {/* Info Button */}
           <Button
             onClick={handleShowInfo}
