@@ -1,4 +1,3 @@
-import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { getEffectiveStats, getMaxHealth } from "../lib/chess/pieceData";
 import { Button } from "./ui/button";
@@ -347,7 +346,7 @@ export default function LevelUpModal() {
   };
 
   return (
-    <Html position={[0, 6, 5]} center>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-auto">
       <Card className="w-96 bg-black/95 text-white border-yellow-600 shadow-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl text-yellow-400">
@@ -506,6 +505,6 @@ export default function LevelUpModal() {
           )}
         </CardContent>
       </Card>
-    </Html>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { Html } from "@react-three/drei";
 import { useChessGame } from "../lib/stores/useChessGame";
 import { useAudio } from "../lib/stores/useAudio";
 import { useIsMobile } from "../hooks/use-is-mobile";
@@ -188,7 +187,7 @@ export default function BattleModal() {
   const xpInfo = getXPGain();
 
   return (
-    <Html position={[0, 5, 5]} center>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-auto">
       <Card className="w-96 bg-black/90 text-white border-red-600 animate-fadeInScale animate-battleShake">
         <CardHeader className="animate-bounce">
           <CardTitle className="text-center text-2xl text-red-400">
@@ -256,6 +255,6 @@ export default function BattleModal() {
           </Button>
         </CardContent>
       </Card>
-    </Html>
+    </div>
   );
 }
