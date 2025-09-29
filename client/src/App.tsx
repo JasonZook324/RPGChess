@@ -94,8 +94,9 @@ function App() {
                 width: '100%'
               } : {
                 marginTop: '80px',
+                marginRight: '280px',
                 height: 'calc(100vh - 80px)',
-                width: '100%'
+                width: 'calc(100% - 280px)'
               }}
             >
                   <color attach="background" args={["#1a1a1a"]} />
