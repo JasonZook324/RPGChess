@@ -135,7 +135,7 @@ interface ChessGameState {
   // Poison system actions
   togglePoisonMode: () => void;
   performPoisonAttack: (knightPosition: Position, targetPosition: Position) => void;
-  processPoisonAndCooldowns: () => void;
+  processPoisonAndCooldowns: (inputBoard?: ChessPiece[][]) => ChessPiece[][];
   
   // Promotion actions
   promotePawn: (pieceType: PromotionPieceType) => void;
@@ -404,7 +404,7 @@ export const useChessGame = create<ChessGameState>()(
                 const moveNotation = `${selectedPiece.type} ${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row} → ${String.fromCharCode(97 + col)}${8 - row}`;
 
                 // Process poison damage and cooldowns before switching turns
-                get().processPoisonAndCooldowns();
+                newBoard = get().processPoisonAndCooldowns(newBoard);
 
                 // Switch to next player (no checkmate check - victory only through king defeat)
                 const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
@@ -586,7 +586,7 @@ export const useChessGame = create<ChessGameState>()(
       const moveNotation = `${battleState.attacker.type} battles ${battleState.defender.type} - ${battleState.result.replace('_', ' ')}`;
       
       // Process poison damage and cooldowns before switching turns
-      get().processPoisonAndCooldowns();
+      newBoard = get().processPoisonAndCooldowns(newBoard);
       
       // Check for immediate game end if a king was defeated in battle
       const nextPlayer = currentPlayer === 'white' ? 'black' : 'white';
@@ -1013,9 +1013,10 @@ export const useChessGame = create<ChessGameState>()(
     },
 
     // Process poison damage and cooldowns during turn transitions
-    processPoisonAndCooldowns: () => {
+    processPoisonAndCooldowns: (inputBoard?: ChessPiece[][]) => {
       const state = get();
-      const newBoard = state.board.map(row => [...row]);
+      const boardToProcess = inputBoard || state.board;
+      const newBoard = boardToProcess.map(row => [...row]);
       let boardChanged = false;
       
       // Process each piece on the board
@@ -1083,10 +1084,13 @@ export const useChessGame = create<ChessGameState>()(
         }
       }
       
-      // Update board if any changes were made
-      if (boardChanged) {
+      // Update board if any changes were made and no input board was provided
+      if (boardChanged && !inputBoard) {
         set({ board: newBoard });
       }
+      
+      // Always return the processed board
+      return newBoard;
     },
     
     // Promotion actions
