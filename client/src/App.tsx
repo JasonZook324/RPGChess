@@ -10,9 +10,9 @@ import PromotionModal from "./components/PromotionModal";
 import AuthModal from "./components/AuthModal";
 import { useChessGame } from "./lib/stores/useChessGame";
 import { useAuth } from "./lib/stores/useAuth";
-import { MobileGameUI } from "./components/GameUI";
-import { MobileBattleModal } from "./components/BattleModal";
-import { MobileLevelUpModal } from "./components/LevelUpModal";
+import GameUI, { MobileGameUI } from "./components/GameUI";
+import BattleModal, { MobileBattleModal } from "./components/BattleModal";
+import LevelUpModal, { MobileLevelUpModal } from "./components/LevelUpModal";
 import MoveTimer from "./components/MoveTimer";
 
 // Define control keys for the game
@@ -66,8 +66,10 @@ function App() {
           {gameMode && isMobile && <MobileBattleModal />}
           {gameMode && isMobile && <MobileLevelUpModal />}
           
-          {/* Timer - renders for both mobile and desktop */}
-          {gameMode && <MoveTimer />}
+          {/* Desktop UI overlays - render outside Canvas */}
+          {gameMode && !isMobile && <GameUI />}
+          {gameMode && !isMobile && <BattleModal />}
+          {gameMode && !isMobile && <LevelUpModal />}
           
           {gameMode && (
             <Canvas
