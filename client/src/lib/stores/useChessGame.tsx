@@ -1030,24 +1030,28 @@ export const useChessGame = create<ChessGameState>()(
           if (piece.poisonStatus) {
             const poisonDamage = Math.floor(piece.health * (piece.poisonStatus.damagePercentage / 100));
             const newHealth = Math.max(1, piece.health - poisonDamage); // Poison can't kill
+            const newTurnsRemaining = piece.poisonStatus.turnsRemaining - 1;
             
-            console.log(`${piece.type} (${piece.color}) takes ${poisonDamage} poison damage (${piece.poisonStatus.damagePercentage}%). Health: ${piece.health} -> ${newHealth}`);
+            console.log(`${piece.type} (${piece.color}) takes ${poisonDamage} poison damage (${piece.poisonStatus.damagePercentage}%). Health: ${piece.health} -> ${newHealth}. Turns remaining: ${piece.poisonStatus.turnsRemaining} -> ${newTurnsRemaining}`);
             
-            newBoard[row][col] = {
+            // Create updated piece
+            const updatedPiece = {
               ...piece,
-              health: newHealth,
-              poisonStatus: {
-                ...piece.poisonStatus,
-                turnsRemaining: piece.poisonStatus.turnsRemaining - 1
-              }
+              health: newHealth
             };
             
-            // Remove poison if duration expired
-            if (piece.poisonStatus.turnsRemaining <= 1) {
+            // Add poison status if still active, or remove if expired
+            if (newTurnsRemaining > 0) {
+              updatedPiece.poisonStatus = {
+                ...piece.poisonStatus,
+                turnsRemaining: newTurnsRemaining
+              };
+            } else {
               console.log(`Poison effect on ${piece.type} (${piece.color}) has expired`);
-              delete newBoard[row][col]!.poisonStatus;
+              // Don't add poisonStatus to updatedPiece (effectively removes it)
             }
             
+            newBoard[row][col] = updatedPiece;
             pieceChanged = true;
             boardChanged = true;
           }
@@ -1056,23 +1060,23 @@ export const useChessGame = create<ChessGameState>()(
           if (piece.poisonCooldown && piece.poisonCooldown > 0) {
             const newCooldown = piece.poisonCooldown - 1;
             
-            // Ensure we're working with the updated piece (if poison was processed)
-            if (!pieceChanged) {
-              newBoard[row][col] = { ...piece };
-            } else {
-              // If piece was already modified for poison, update the current piece
-              newBoard[row][col] = { ...newBoard[row][col]! };
-            }
-            
             console.log(`${piece.type} (${piece.color}) poison cooldown: ${piece.poisonCooldown} -> ${newCooldown}`);
             
+            // Get the current piece (might have been updated by poison processing)
+            const currentPiece = newBoard[row][col] || piece;
+            
+            // Update the piece with new cooldown
+            const updatedPiece = { ...currentPiece };
+            
             if (newCooldown > 0) {
-              newBoard[row][col]!.poisonCooldown = newCooldown;
+              updatedPiece.poisonCooldown = newCooldown;
             } else {
-              delete newBoard[row][col]!.poisonCooldown;
+              // Remove cooldown property if expired
+              delete updatedPiece.poisonCooldown;
               console.log(`${piece.type} (${piece.color}) poison cooldown expired`);
             }
             
+            newBoard[row][col] = updatedPiece;
             pieceChanged = true;
             boardChanged = true;
           }
