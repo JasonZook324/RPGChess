@@ -34,16 +34,20 @@ export function MobileTimer() {
   const isVeryLowTime = moveTimer <= 10;
 
   return (
-    <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+    <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
       isVeryLowTime 
-        ? 'bg-red-600/90 text-white' 
+        ? 'bg-red-600/90 text-white shadow-lg shadow-red-500/50' 
         : isLowTime 
-        ? 'bg-yellow-600/90 text-white' 
+        ? 'bg-yellow-600/90 text-white shadow-lg shadow-yellow-500/30' 
         : 'bg-gray-800/90 text-white'
     }`}>
-      <Clock className={`w-4 h-4 ${isVeryLowTime ? 'animate-pulse' : ''}`} />
+      <Clock className={`w-4 h-4 transition-all duration-300 ${
+        isVeryLowTime ? 'animate-pulse text-red-200' : isLowTime ? 'text-yellow-200' : 'text-gray-300'
+      }`} />
       <div className="flex flex-col items-center">
-        <div className={`text-lg font-bold font-mono ${isVeryLowTime ? 'animate-pulse' : ''}`}>
+        <div className={`text-lg font-bold font-mono transition-all duration-300 ${
+          isVeryLowTime ? 'animate-pulse scale-110' : isLowTime ? 'scale-105' : ''
+        }`}>
           {minutes}:{seconds.toString().padStart(2, '0')}
         </div>
         <div className="text-xs text-gray-300 capitalize">
@@ -123,7 +127,10 @@ export default function MoveTimer() {
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              className={`transition-all duration-1000 ${isVeryLowTime ? 'animate-pulse' : ''}`}
+              className={`transition-all duration-500 ease-out ${isVeryLowTime ? 'animate-pulse drop-shadow-lg' : ''}`}
+              style={{
+                filter: isVeryLowTime ? 'drop-shadow(0 0 8px #dc2626)' : isLowTime ? 'drop-shadow(0 0 4px #d97706)' : ''
+              }}
             />
           </svg>
           

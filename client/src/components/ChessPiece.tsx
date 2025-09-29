@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, useGLTF, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -20,9 +20,34 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const [showInfo, setShowInfo] = useState(false);
   const isMobile = useIsMobile();
   
+  // Animation state for smooth movement - using refs to avoid re-renders
+  const animatedPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const targetPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const isAnimatingRef = useRef<boolean>(false);
+  const animationTimeRef = useRef<number>(0);
+  
   const isSelected = Boolean(selectedSquare?.row === row && selectedSquare?.col === col);
   const isCurrentPlayerPiece = piece.color === currentPlayer;
   const canHeal = piece.type === 'bishop' && isCurrentPlayerPiece;
+  
+  // Initialize position on mount
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(...position);
+    }
+  }, []);
+  
+  // Update target position when position prop changes (piece moves)
+  useEffect(() => {
+    const newTargetPosition = new THREE.Vector3(...position);
+    const currentPosition = animatedPositionRef.current.clone();
+    
+    // Check if position actually changed
+    if (!currentPosition.equals(newTargetPosition)) {
+      targetPositionRef.current.copy(newTargetPosition);
+      isAnimatingRef.current = true;
+    }
+  }, [position]);
   
   // Load model at top level
   const modelPath = `/models/${piece.type}.glb`;
@@ -33,24 +58,62 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   const maxHealth = getMaxHealth(piece);
   const healthPercentage = piece.health / maxHealth;
 
-  // Selection animation only
+  // Animation logic for movement, selection, and pulsing glow
   useFrame((state) => {
+    // Update animation time for effects (using ref to avoid re-renders)
+    animationTimeRef.current = state.clock.elapsedTime;
+    
     if (groupRef.current) {
-      const selectOffset = isSelected ? 0.3 : 0;
+      // Handle position animation (movement between squares)
+      if (isAnimatingRef.current) {
+        const currentPos = animatedPositionRef.current.clone();
+        const targetPos = targetPositionRef.current.clone();
+        
+        // Smooth interpolation towards target position
+        const newPos = currentPos.lerp(targetPos, 0.12); // Animation speed
+        animatedPositionRef.current.copy(newPos);
+        
+        // Update the group's base position
+        groupRef.current.position.set(newPos.x, newPos.y, newPos.z);
+        
+        // Check if we've reached the target (within a small threshold)
+        if (currentPos.distanceTo(targetPos) < 0.01) {
+          isAnimatingRef.current = false;
+          animatedPositionRef.current.copy(targetPos);
+          groupRef.current.position.set(targetPos.x, targetPos.y, targetPos.z);
+        }
+      } else {
+        // Apply selection offset on top of base position when not moving
+        const baseY = animatedPositionRef.current.y;
+        const selectOffset = isSelected ? 0.3 : 0;
+        
+        groupRef.current.position.y = THREE.MathUtils.lerp(
+          groupRef.current.position.y,
+          baseY + selectOffset,
+          0.15
+        );
+      }
       
-      groupRef.current.position.y = THREE.MathUtils.lerp(
-        groupRef.current.position.y,
-        selectOffset,
-        0.1
-      );
+      // Add pulsing glow effect for selected pieces
+      if (isSelected) {
+        const pulseIntensity = 0.3 + Math.sin(state.clock.elapsedTime * 3) * 0.15; // Pulse between 0.15 and 0.45
+        
+        groupRef.current.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            if (mesh.material && (mesh.material as THREE.MeshStandardMaterial).emissive) {
+              (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = pulseIntensity;
+            }
+          }
+        });
+      }
     }
   });
 
-  // Get piece color with selection feedback and create model
-  let pieceColor = piece.color === 'white' ? '#ffffff' : '#333333';
-  if (isSelected) {
-    pieceColor = piece.color === 'white' ? '#ffff80' : '#8080ff'; // Brighter when selected
-  }
+  // Get piece color with selection feedback
+  const baseColor = piece.color === 'white' ? '#ffffff' : '#333333';
+  const selectedColor = piece.color === 'white' ? '#ffff80' : '#8080ff';
+  const pieceColor = isSelected ? selectedColor : baseColor;
   
   // Memoized piece model and bottom UI position
   const { pieceModel, bottomUIY, bottomUIZ } = useMemo(() => {
@@ -61,18 +124,26 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
     const scale = 0.8; // Smaller scale for better piece selection
     clonedScene.scale.set(scale, scale, scale);
     
-    // Apply piece color to all materials and disable raycasting on child meshes
+    // Apply piece color and selection effects to all materials
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         // Disable raycasting on all child meshes to prevent hover conflicts
         mesh.raycast = () => null;
         if (mesh.material) {
-          // Create a new material with the piece color
+          // Create enhanced material with glow effects for selection
+          const emissiveColor = isSelected ? 
+            (piece.color === 'white' ? '#ffff40' : '#4040ff') : 
+            '#000000';
+          
           mesh.material = new THREE.MeshStandardMaterial({
             color: pieceColor,
+            emissive: emissiveColor,
+            emissiveIntensity: isSelected ? 0.3 : 0,
             metalness: 0.1,
-            roughness: 0.7
+            roughness: 0.7,
+            transparent: isSelected,
+            opacity: 1
           });
         }
       }
@@ -96,7 +167,7 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
   };
 
   return (
-    <group position={position}>
+    <group position={[0, 0, 0]}>
       <group ref={groupRef}>
         {/* Visual model (no interaction) */}
         <primitive object={pieceModel} />
@@ -197,19 +268,34 @@ export default function ChessPiece({ piece, position, row, col }: ChessPieceProp
         {/* Level Up Indicator */}
         {piece.unspentPoints > 0 && (
           <group position={[0, 1.0, 0]}>
+            {/* Glowing background ring */}
+            <mesh raycast={() => null}>
+              <ringGeometry args={[0.1, 0.15, 16]} />
+              <meshBasicMaterial 
+                color="#ffd700" 
+                transparent 
+                opacity={0.8} 
+              />
+            </mesh>
+            {/* Main level up indicator */}
             <mesh raycast={() => null}>
               <circleGeometry args={[0.08]} />
-              <meshBasicMaterial color="#ffff00" />
+              <meshStandardMaterial 
+                color="#ffff00" 
+                emissive="#ffaa00" 
+                emissiveIntensity={0.5}
+              />
             </mesh>
+            {/* Level up text */}
             <Text
-              position={[0, 0, 0.01]}
+              position={[0, 0, 0.02]}
               fontSize={0.06}
               color="#000000"
               anchorX="center"
               anchorY="middle"
               raycast={() => null}
             >
-              !
+              ⭐
             </Text>
           </group>
         )}
